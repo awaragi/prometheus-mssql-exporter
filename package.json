@@ -23,11 +23,9 @@
     "url": "https://github.com/awaragi/prometheus-mssql-exporter/issues"
   },
   "scripts": {
-    "start": "node ./index.js",
-
     "build": "docker build . -t awaragi/prometheus-mssql-exporter",
     "prepublish": "npm run build",
-    "publish": "docker push awaragi/prometheus-mssql-exporter",
+    "publish": "docker push awaragi/prometheus-mssql-exporter"
   },
   "dependencies": {
     "debug": "^2.6.8",
