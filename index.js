@@ -1,11 +1,13 @@
 var interval = null;
 var connection = null;
+const debug = require("debug")("app");
 const Connection = require('tedious').Connection;
+const Request = require('tedious').Request;
 const app = require('express')();
 const client = require('prom-client');
 const metrics = {
     up: new client.Gauge({name: 'UP', help: "UP Status"}),
-    connections: new client.Counter({name: 'mssql_connections', help: 'Number of active connections'}),
+    connections: new client.Gauge({name: 'mssql_connections', help: 'Number of active connections'}),
 };
 
 var config = {
@@ -14,7 +16,8 @@ var config = {
         userName: process.env["USERNAME"],
         password: process.env["PASSWORD"],
         options: {
-            encrypt: true
+            encrypt: true,
+            rowCollectionOnRequestCompletion: true
         },
     },
     reconnect: process.env["RECONNECT"] || 1000,
@@ -23,7 +26,7 @@ var config = {
 };
 
 if (!config.connect.server) {
-    throw new Error("Missing HOST information")
+    throw new Error("Missing SERVER information")
 }
 if (!config.connect.userName) {
     throw new Error("Missing USERNAME information")
@@ -33,14 +36,14 @@ if (!config.connect.password) {
 }
 
 function connect() {
-    console.log("Connecting to database", config.connect.server);
+    debug("Connecting to database", config.connect.server);
     connection = new Connection(config.connect);
 
     connection.on('connect', function (err) {
         if (err) {
             console.error("Failed to connect to database", err);
         } else {
-            console.log("Connected to database");
+            debug("Connected to database");
             interval = setInterval(collect, config.interval);
         }
     });
@@ -49,16 +52,24 @@ function connect() {
             console.error("Connection to database ended with error", error);
 
         } else {
-            console.log("Connection to database ended");
+            debug("Connection to database ended");
         }
         dead();
-        setTimeout(connect, config.reconnect);
     });
 }
 
 function collect() {
-    console.log("Collecting statistics");
+    debug("Collecting statistics");
     metrics.up.set(1);
+
+    connection.execSql(new Request("SELECT count(*) FROM sys.sysprocesses WHERE dbid > 0", function (err, rowCount, rows) {
+        if(err) {
+            dead();
+        } else {
+            debug("Fetch number of connections", rows[0][0].value);
+            metrics.connections.set(rows[0][0].value)
+        }
+    }));
 }
 
 function dead() {
@@ -66,6 +77,7 @@ function dead() {
         clearImmediate(interval);
     }
     interval = null;
+    setTimeout(connect, config.reconnect);
 }
 
 app.get('/metrics', function (req, res) {
@@ -78,15 +90,14 @@ app.get('/metrics', function (req, res) {
 });
 
 app.listen(config.port, function () {
-    console.log('Prometheus-MSSQL Exporter listening on local port', config.port);
+    debug('Prometheus-MSSQL Exporter listening on local port', config.port);
 });
 
-process.on('SIGINT', function() {
-    if(interval) {
+process.on('SIGINT', function () {
+    if (interval) {
         clearImmediate(interval);
     }
     process.exit();
 });
 
 dead();
-connect();

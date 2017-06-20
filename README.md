@@ -2,7 +2,8 @@ Prometheus MSSQL Exporter Docker Container
 =============
 
 Prometheus exporter for Microsoft SQL Server. Exposes the following metrics
-* UP
+* UP (gauge)
+* mssql_connections (gauge)
 * TBD.
 
 Usage
