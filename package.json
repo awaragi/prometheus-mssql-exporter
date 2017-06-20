@@ -24,10 +24,10 @@
   },
   "scripts": {
     "start": "node ./index.js",
-    "build": "docker build . -t prometheus-mssql-exporter",
-    "pretest": "docker-compose -f docker-compose-test.yml up -d",
-    "test": "npm run build && docker run -e SERVER=192.168.56.102 -e USERNAME=SA -e PASSWORD=qkD4x3yy --name prometheus-mssql-exporter  prometheus-mssql-exporter",
-    "posttest": "docker rm -f prometheus-mssql-exporter"
+
+    "build": "docker build . -t awaragi/prometheus-mssql-exporter",
+    "prepublish": "npm run build",
+    "publish": "docker push awaragi/prometheus-mssql-exporter",
   },
   "dependencies": {
     "debug": "^2.6.8",
@@ -39,3 +39,5 @@
     "nodemon": "^1.11.0"
   }
 }
+
+

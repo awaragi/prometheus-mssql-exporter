@@ -9,7 +9,28 @@ Prometheus exporter for Microsoft SQL Server. Exposes the following metrics
 Usage
 -----
 
-### command line
+`docker run -e SERVER=192.168.56.102 -e USERNAME=SA -e PASSWORD=qkD4x3yy -e DEBUG=app -p 4000:4000 --name prometheus-mssql-exporter awaragi/prometheus-mssql-exporter`
+
+The image supports the following environments and exposes port 4000
+
+* SERVER=sqlserver
+* PORT=sqlport<1443>
+* USERNAME=sqluser
+* PASSWORD=sqluserpassword
+* RECONNECT=ms<1000>
+* INTERVAL=ms<1000>
+
+Testing
+-------
+
+To start a local test mssql server 
+
+`docker-compose -f docker-compose-test.yml up -d`
+
+Development
+-----------
+
+### Launch via command line
 
 `
 SERVER=sqlserver
@@ -22,15 +43,12 @@ EXPOSE=webport<4000>
 node ./index.js
 `
 
+To enable debugging set the environment variable DEBUG to app (DEBUG=app) 
+
 for example:
 `SERVER=192.168.56.102 USERNAME=SA PASSWORD=qkD4x3yy node ./index.js`
 
-### docker container
+### building and pushing image to dockerhub
 
-`docker build . -t prometheus-mssql-exporter`
+`npm run push`
 
-`docker run awaragi/prometheus-mssql-exporter 
--e SERVER=192.168.56.102 
--e USERNAME=SA 
--e PASSWORD=qkD4x3yy
-`
