@@ -46,9 +46,12 @@ node ./index.js
 To enable debugging set the environment variable DEBUG to app (DEBUG=app) 
 
 for example:
-`SERVER=192.168.56.102 USERNAME=SA PASSWORD=qkD4x3yy node ./index.js`
+`DEBUG=app SERVER=192.168.56.102 USERNAME=SA PASSWORD=qkD4x3yy node ./index.js`
 
 ### building and pushing image to dockerhub
 
 `npm run push`
 
+### Launch a mock mssql server
+
+`docker run -e ACCEPT_EULA=Y -e SA_PASSWORD=qkD4x3yy -p 1433:1433 --name mssql -d microsoft/mssql-server-linux`
