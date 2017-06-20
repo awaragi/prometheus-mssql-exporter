@@ -20,13 +20,6 @@ The image supports the following environments and exposes port 4000
 * RECONNECT=ms<1000>
 * INTERVAL=ms<1000>
 
-Testing
--------
-
-To start a local test mssql server 
-
-`docker-compose -f docker-compose-test.yml up -d`
-
 Development
 -----------
 
