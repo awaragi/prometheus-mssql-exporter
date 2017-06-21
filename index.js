@@ -1,4 +1,4 @@
-var interval = null;
+var collectInterval = null;
 var connection = null;
 const debug = require("debug")("app");
 const Connection = require('tedious').Connection;
@@ -7,7 +7,8 @@ const app = require('express')();
 const client = require('prom-client');
 const metrics = {
     up: new client.Gauge({name: 'UP', help: "UP Status"}),
-    connections: new client.Gauge({name: 'mssql_connections', help: 'Number of active connections'}),
+    connections: new client.Gauge({name: 'mssql_connections_total', help: 'Number of active connections'}),
+    deadlocks: new client.Gauge({name: 'mssql_deadlocks_total', help: 'Number of deadlocks/sec since last restart'})
 };
 
 var config = {
@@ -18,7 +19,7 @@ var config = {
         options: {
             encrypt: true,
             rowCollectionOnRequestCompletion: true
-        },
+        }
     },
     reconnect: process.env["RECONNECT"] || 1000,
     interval: process.env["INTERVAL"] || 1000,
@@ -41,51 +42,62 @@ function connect() {
 
     connection.on('connect', function (err) {
         if (err) {
-            console.error("Failed to connect to database", err);
+            console.error("Failed to connect to database:", err.message || err);
         } else {
             debug("Connected to database");
-            interval = setInterval(collect, config.interval);
+            connected = true;
+            collectInterval = setInterval(collect, config.interval);
         }
     });
-    connection.on('end', function (err) {
-        if (err) {
-            console.error("Connection to database ended with error", error);
-
-        } else {
-            debug("Connection to database ended");
-        }
+    connection.on('end', function () {
+        debug("Connection to database ended");
         dead();
     });
 }
 
 function collect() {
-    debug("Collecting statistics");
-    metrics.up.set(1);
+    if (connected) {
+        debug("Collecting statistics");
+        metrics.up.set(1);
 
-    connection.execSql(new Request("SELECT count(*) FROM sys.sysprocesses WHERE dbid > 0", function (err, rowCount, rows) {
-        if(err) {
-            dead();
-        } else {
-            debug("Fetch number of connections", rows[0][0].value);
-            metrics.connections.set(rows[0][0].value)
-        }
-    }));
+        connection.execSql(new Request("SELECT count(*) FROM sys.sysprocesses WHERE dbid > 0", function (err, rowCount, rows) {
+            if (err) {
+                dead();
+            } else {
+                debug("Fetch number of connections", rows[0][0].value);
+                metrics.connections.set(rows[0][0].value);
+
+                connection.execSql(new Request("SELECT cntr_value FROM sys.dm_os_performance_counters WHERE object_name = 'SQLServer:Locks' AND counter_name = 'Number of Deadlocks/sec' AND instance_name = '_Total'", function (err, rowCount, rows) {
+                    if (err) {
+                        dead();
+                    } else {
+                        debug("Fetch number of deadlocks/sec", rows[0][0].value);
+                        metrics.deadlocks.set(rows[0][0].value)
+                    }
+                }));
+            }
+        }));
+    }
 }
 
 function dead() {
-    if (interval) {
-        clearImmediate(interval);
+    debug("Unable to query database");
+    metrics.up.set(0);
+
+    connection = null;
+    if (collectInterval) {
+        clearImmediate(collectInterval);
     }
-    interval = null;
+    collectInterval = null;
     setTimeout(connect, config.reconnect);
 }
 
 app.get('/metrics', function (req, res) {
     res.contentType(client.register.contentType);
-    if (interval) {
+    if (collectInterval) {
         res.send(client.register.metrics())
     } else {
-        res.send("");
+        res.send(client.register.getSingleMetricAsString("UP"));
     }
 });
 
@@ -94,8 +106,8 @@ app.listen(config.port, function () {
 });
 
 process.on('SIGINT', function () {
-    if (interval) {
-        clearImmediate(interval);
+    if (collectInterval) {
+        clearImmediate(collectInterval);
     }
     process.exit();
 });
