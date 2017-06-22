@@ -2,9 +2,18 @@ Prometheus MSSQL Exporter Docker Container
 =============
 
 Prometheus exporter for Microsoft SQL Server. Exposes the following metrics
-* UP (gauge)
-* mssql_connections_total (gauge)
-* mssql_deadlocks_total (gauge)
+* UP gauge
+* mssql_instance_local_time gauge
+* mssql_connections{database="", state="current"} gauge
+* mssql_deadlocks gauge
+* mssql_io_stall{database="XXX", type="read"}
+* mssql_io_stall_total{database="XXX"}
+* mssql_page_fault_count gauge
+* mssql_memory_utilization_percentage gauge
+* mssql_total_physical_memory_kb gauge
+* mssql_available_physical_memory_kb gauge
+* mssql_total_page_file_kb gauge
+* mssql_available_page_file_kb gauge
 * TBD.
 
 Usage

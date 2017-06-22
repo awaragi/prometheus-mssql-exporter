@@ -58,14 +58,16 @@ function connect() {
 
 /**
  * Recursive function that executes all collectors sequentially
- * @param collectors {metric: Metric, query: string, collect: function(rows, metric)}
+ * @param collectors {metrics: Metric|Metric[], query: string, collect: function(rows, metric)}
  */
 function measure(collectors) {
     if(connection) {
         const collector = collectors.shift();
         connection.execSql(new Request(collector.query, function (err, rowCount, rows) {
             if (!err) {
-                collector.collect(rows, collector.metric);
+                collector.collect(rows, collector.metrics);
+            } else {
+                console.error("Error executing SQL query", collector.query, err);
             }
             if (collectors.length) {
                 measure(collectors)
