@@ -1,15 +1,13 @@
-var collectInterval = null;
-var connection = null;
 const debug = require("debug")("app");
 const Connection = require('tedious').Connection;
 const Request = require('tedious').Request;
 const app = require('express')();
-const client = require('prom-client');
-const metrics = {
-    up: new client.Gauge({name: 'UP', help: "UP Status"}),
-    connections: new client.Gauge({name: 'mssql_connections_total', help: 'Number of active connections'}),
-    deadlocks: new client.Gauge({name: 'mssql_deadlocks_total', help: 'Number of deadlocks/sec since last restart'})
-};
+
+var collectInterval = null;
+var connection = null;
+const client = require('./metrics').client;
+const up = require('./metrics').up;
+const metrics = require('./metrics').metrics;
 
 var config = {
     connect: {
@@ -21,7 +19,7 @@ var config = {
             rowCollectionOnRequestCompletion: true
         }
     },
-    reconnect: process.env["RECONNECT"] || 1000,
+    reconnect: process.env["RECONNECT"] || 5000,
     interval: process.env["INTERVAL"] || 1000,
     port: process.env["EXPOSE"] || 4000
 };
@@ -36,53 +34,62 @@ if (!config.connect.password) {
     throw new Error("Missing PASSWORD information")
 }
 
+/**
+ * Connects to a database server and if successful starts the metrics collection interval.
+ */
 function connect() {
     debug("Connecting to database", config.connect.server);
-    connection = new Connection(config.connect);
+    var _connection = new Connection(config.connect);
 
-    connection.on('connect', function (err) {
+    _connection.on('connect', function (err) {
         if (err) {
             console.error("Failed to connect to database:", err.message || err);
         } else {
             debug("Connected to database");
-            connected = true;
+            connection = _connection;
             collectInterval = setInterval(collect, config.interval);
         }
     });
-    connection.on('end', function () {
+    _connection.on('end', function () {
         debug("Connection to database ended");
         dead();
     });
 }
 
-function collect() {
-    if (connected) {
-        debug("Collecting statistics");
-        metrics.up.set(1);
-
-        connection.execSql(new Request("SELECT count(*) FROM sys.sysprocesses WHERE dbid > 0", function (err, rowCount, rows) {
-            if (err) {
-                dead();
-            } else {
-                debug("Fetch number of connections", rows[0][0].value);
-                metrics.connections.set(rows[0][0].value);
-
-                connection.execSql(new Request("SELECT cntr_value FROM sys.dm_os_performance_counters WHERE object_name = 'SQLServer:Locks' AND counter_name = 'Number of Deadlocks/sec' AND instance_name = '_Total'", function (err, rowCount, rows) {
-                    if (err) {
-                        dead();
-                    } else {
-                        debug("Fetch number of deadlocks/sec", rows[0][0].value);
-                        metrics.deadlocks.set(rows[0][0].value)
-                    }
-                }));
+/**
+ * Recursive function that executes all collectors sequentially
+ * @param collectors {metric: Metric, query: string, collect: function(rows, metric)}
+ */
+function measure(collectors) {
+    if(connection) {
+        const collector = collectors.shift();
+        connection.execSql(new Request(collector.query, function (err, rowCount, rows) {
+            if (!err) {
+                collector.collect(rows, collector.metric);
+            }
+            if (collectors.length) {
+                measure(collectors)
             }
         }));
     }
 }
 
+/**
+ * Function that collects from an active server. Should be called via setInterval setup.
+ */
+function collect() {
+    if (connection) {
+        up.set(1);
+        measure(metrics.slice());
+    }
+}
+
+/**
+ * Function that marks the server as unavailable and unable to receive any queries
+ */
 function dead() {
     debug("Unable to query database");
-    metrics.up.set(0);
+    up.set(0);
 
     connection = null;
     if (collectInterval) {
@@ -112,4 +119,4 @@ process.on('SIGINT', function () {
     process.exit();
 });
 
-dead();
+connect();

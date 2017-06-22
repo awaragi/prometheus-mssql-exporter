@@ -4,6 +4,7 @@ Prometheus MSSQL Exporter Docker Container
 Prometheus exporter for Microsoft SQL Server. Exposes the following metrics
 * UP (gauge)
 * mssql_connections_total (gauge)
+* mssql_deadlocks_total (gauge)
 * TBD.
 
 Usage
@@ -13,12 +14,13 @@ Usage
 
 The image supports the following environments and exposes port 4000
 
-* SERVER=sqlserver
-* PORT=sqlport<1443>
-* USERNAME=sqluser
-* PASSWORD=sqluserpassword
-* RECONNECT=ms<1000>
-* INTERVAL=ms<1000>
+* **SERVER** server ip or dns name (required)
+* **PORT** server port (optional defaults to 1443)
+* **USERNAME** access user (required)
+* **PASSWORD** access password (required)
+* **RECONNECT** time in ms between retries to reconnect to a unavailable server (optional defaults to 5000ms)
+* **INTERVAL** time in ms between metrics collections (optional defaults to 1000ms)
+* **DEBUG** comma delimited list of enabled logs (optional currently supports app and metrics)
 
 Development
 -----------
@@ -36,10 +38,10 @@ EXPOSE=webport<4000>
 node ./index.js
 `
 
-To enable debugging set the environment variable DEBUG to app (DEBUG=app) 
+To enable debugging set the environment variable DEBUG to app and/or metrics (DEBUG=app) 
 
 for example:
-`DEBUG=app SERVER=192.168.56.102 USERNAME=SA PASSWORD=qkD4x3yy node ./index.js`
+`DEBUG=app,metrics SERVER=192.168.56.102 USERNAME=SA PASSWORD=qkD4x3yy node ./index.js`
 
 ### building and pushing image to dockerhub
 
