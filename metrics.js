@@ -10,44 +10,50 @@ const up = new client.Gauge({name: 'UP', help: "UP Status"});
 // Query based metrics
 // -------------------
 const time = {
-    metrics: new client.Gauge({name: 'mssql_instance_local_time', help: 'Number of seconds since epoch on local instance'}),
+    metrics: {
+        mssql_instance_local_time: new client.Gauge({name: 'mssql_instance_local_time', help: 'Number of seconds since epoch on local instance'})
+    },
     query: `SELECT DATEDIFF(second, '19700101', GETUTCDATE())`,
     collect: function (rows, metrics) {
         const time = rows[0][0].value;
         debug("Fetch current time", time);
-        metrics.set(time);
+        metrics.mssql_instance_local_time.set(time);
     }
 };
 const connections = {
-    metrics: new client.Gauge({name: 'mssql_connections', help: 'Number of active connections', labelNames: ['database', 'state',]}),
+    metrics: {
+        mssql_connections: new client.Gauge({name: 'mssql_connections', help: 'Number of active connections', labelNames: ['database', 'state',]})
+    },
     query: `SELECT DB_NAME(sP.dbid)
         , COUNT(sP.spid)
 FROM sys.sysprocesses sP
 GROUP BY DB_NAME(sP.dbid)
-ORDER BY 1;`,
+ORDER BY 1`,
     collect: function (rows, metrics) {
-        for(var i = 0; i < rows.length; i++) {
+        for (var i = 0; i < rows.length; i++) {
             const row = rows[i]
             const database = row[0].value;
             const connections = row[1].value;
             debug("Fetch number of connections for database", database, connections);
-            metrics.set({database: database, state: 'current'}, connections);
+            metrics.mssql_connections.set({database: database, state: 'current'}, connections);
         }
     }
 };
 const deadlocks = {
-    metrics: new client.Gauge({name: 'mssql_deadlocks', help: 'Number of deadlocks/sec since last restart'}),
+    metrics: {
+        mssql_deadlocks: new client.Gauge({name: 'mssql_deadlocks', help: 'Number of deadlocks/sec since last restart'})
+    },
     query: `SELECT cntr_value FROM sys.dm_os_performance_counters with (nolock) WHERE object_name = 'SQLServer:Locks' AND counter_name = 'Number of Deadlocks/sec' AND instance_name = '_Total'`,
     collect: function (rows, metrics) {
         const deadlocks = rows[0][0].value;
         debug("Fetch number of deadlocks/sec", deadlocks);
-        metrics.set(deadlocks)
+        metrics.mssql_deadlocks.set(deadlocks)
     }
 };
 const ioStall = {
     metrics: {
-        byType: new client.Gauge({name: 'mssql_io_stall', help: 'Wait time (ms) of stall since last restart', labelNames: ['database', 'type']}),
-        total: new client.Gauge({name: 'mssql_io_stall_total', help: 'Wait time (ms) of stall since last restart', labelNames: ['database']}),
+        mssql_io_stall: new client.Gauge({name: 'mssql_io_stall', help: 'Wait time (ms) of stall since last restart', labelNames: ['database', 'type']}),
+        mssql_io_stall_total: new client.Gauge({name: 'mssql_io_stall_total', help: 'Wait time (ms) of stall since last restart', labelNames: ['database']}),
     },
     query: `SELECT
 cast(DB_Name(a.database_id) as varchar) as name,
@@ -72,11 +78,11 @@ ORDER BY name
             const queued_read = row[4].value;
             const queued_write = row[5].value;
             debug("Fetch number of stalls for database", database);
-            metrics.total.set({database: database}, stall);
-            metrics.byType.set({database: database, type: "read"}, read);
-            metrics.byType.set({database: database, type: "write"}, write);
-            metrics.byType.set({database: database, type: "queued_read"}, queued_read);
-            metrics.byType.set({database: database, type: "queued_write"}, queued_write);
+            metrics.mssql_io_stall_total.set({database: database}, stall);
+            metrics.mssql_io_stall.set({database: database, type: "read"}, read);
+            metrics.mssql_io_stall.set({database: database, type: "write"}, write);
+            metrics.mssql_io_stall.set({database: database, type: "queued_read"}, queued_read);
+            metrics.mssql_io_stall.set({database: database, type: "queued_write"}, queued_write);
         }
     }
 };
@@ -111,8 +117,21 @@ const sysMemory = {
     }
 };
 
+const metrics = [time, connections, deadlocks, ioStall, memory, sysMemory];
+
 module.exports = {
     client: client,
     up: up,
-    metrics: [time, connections, deadlocks, ioStall, memory, sysMemory],
+    metrics: metrics,
 };
+
+// DOCUMENTATION of queries and their associated metrics (targeted to DBAs)
+if (require.main === module) {
+    metrics.forEach(function (m) {
+        for(var key in m.metrics) {
+            console.log("--", m.metrics[key].name, m.metrics[key].help);
+        }
+        console.log(m.query + ";");
+        console.log("");
+    });
+}
