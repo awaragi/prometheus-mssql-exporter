@@ -3,13 +3,13 @@ const Connection = require('tedious').Connection;
 const Request = require('tedious').Request;
 const app = require('express')();
 
-var collectInterval = null;
-var connection = null;
+let collectInterval = null;
+let connection = null;
 const client = require('./metrics').client;
 const up = require('./metrics').up;
 const metrics = require('./metrics').metrics;
 
-var config = {
+let config = {
     connect: {
         server: process.env["SERVER"],
         userName: process.env["USERNAME"],
@@ -20,7 +20,7 @@ var config = {
         }
     },
     reconnect: process.env["RECONNECT"] || 5000,
-    interval: process.env["INTERVAL"] || 1000,
+    interval: process.env["INTERVAL"] || 60000,
     port: process.env["EXPOSE"] || 4000
 };
 
@@ -39,7 +39,7 @@ if (!config.connect.password) {
  */
 function connect() {
     debug("Connecting to database", config.connect.server);
-    var _connection = new Connection(config.connect);
+    let _connection = new Connection(config.connect);
 
     _connection.on('connect', function (err) {
         if (err) {
@@ -47,6 +47,7 @@ function connect() {
         } else {
             debug("Connected to database");
             connection = _connection;
+            setImmediate(collect);
             collectInterval = setInterval(collect, config.interval);
         }
     });
@@ -58,7 +59,7 @@ function connect() {
 
 /**
  * Recursive function that executes all collectors sequentially
- * @param collectors {metrics: Metric|Metric[], query: string, collect: function(rows, metric)}
+ * @param collectors metrics: Metric|Metric[], query: string, collect: function(rows, metric)
  */
 function measure(collectors) {
     if(connection) {
