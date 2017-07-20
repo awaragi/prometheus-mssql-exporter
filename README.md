@@ -37,6 +37,11 @@ The image supports the following environments and exposes port 4000
 * **INTERVAL** time in ms between metrics collections (optional defaults to 60000ms)
 * **DEBUG** comma delimited list of enabled logs (optional currently supports app and metrics)
 
+It is **_required_** that the specified user has the following permissions
+
+* GRANT VIEW ANY DEFINITION TO <user>
+* GRANT VIEW SERVER STATE TO <user>
+
 Development
 -----------
 
