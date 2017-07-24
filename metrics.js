@@ -6,7 +6,7 @@ const debug = require("debug")("metrics");
 const client = require('prom-client');
 
 // UP metric
-const up = new client.Gauge({name: 'UP', help: "UP Status"});
+const up = new client.Gauge({name: 'up', help: "UP Status"});
 
 // Query based metrics
 // -------------------
