@@ -1,4 +1,4 @@
-FROM node:8.1.2-alpine
+FROM node:8.4.0-alpine
 MAINTAINER Pierre Awaragi (pierre@awaragi.com)
 
 # Create a directory where our app will be placed
