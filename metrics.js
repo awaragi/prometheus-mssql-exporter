@@ -170,7 +170,7 @@ const mssql_os_process_memory = {
         mssql_page_fault_count: new client.Gauge({name: 'mssql_page_fault_count', help: 'Number of page faults since last restart'}),
         mssql_memory_utilization_percentage: new client.Gauge({name: 'mssql_memory_utilization_percentage', help: 'Percentage of memory utilization'}),
     },
-    query: `select page_fault_count, memory_utilization_percentage 
+    query: `SELECT page_fault_count, memory_utilization_percentage 
 from sys.dm_os_process_memory`,
     collect: function (rows, metrics) {
         const page_fault_count = rows[0][0].value;
@@ -188,7 +188,7 @@ const mssql_os_sys_memory = {
         mssql_total_page_file_kb: new client.Gauge({name: 'mssql_total_page_file_kb', help: 'Total page file in KB'}),
         mssql_available_page_file_kb: new client.Gauge({name: 'mssql_available_page_file_kb', help: 'Available page file in KB'}),
     },
-    query: `select total_physical_memory_kb, available_physical_memory_kb, total_page_file_kb, available_page_file_kb 
+    query: `SELECT total_physical_memory_kb, available_physical_memory_kb, total_page_file_kb, available_page_file_kb 
 from sys.dm_os_sys_memory`,
     collect: function (rows, metrics) {
         const mssql_total_physical_memory_kb = rows[0][0].value;

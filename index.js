@@ -3,8 +3,6 @@ const Connection = require('tedious').Connection;
 const Request = require('tedious').Request;
 const app = require('express')();
 
-let collectInterval = null;
-let connection = null;
 const client = require('./metrics').client;
 const up = require('./metrics').up;
 const metrics = require('./metrics').metrics;
@@ -12,6 +10,7 @@ const metrics = require('./metrics').metrics;
 let config = {
     connect: {
         server: process.env["SERVER"],
+        port: process.env["PORT"] || 1433,
         userName: process.env["USERNAME"],
         password: process.env["PASSWORD"],
         options: {
@@ -19,8 +18,6 @@ let config = {
             rowCollectionOnRequestCompletion: true
         }
     },
-    reconnect: process.env["RECONNECT"] || 5000,
-    interval: process.env["INTERVAL"] || 60000,
     port: process.env["EXPOSE"] || 4000
 };
 
@@ -36,90 +33,87 @@ if (!config.connect.password) {
 
 /**
  * Connects to a database server and if successful starts the metrics collection interval.
+ *
+ * @returns Promise<Connection>
  */
-function connect() {
-    debug("Connecting to database", config.connect.server);
-    let _connection = new Connection(config.connect);
+async function connect() {
+    return new Promise((resolve, reject) => {
+        debug("Connecting to database", config.connect.server);
+        let connection = new Connection(config.connect);
+        connection.on('connect', (error) => {
+            if (error) {
+                console.error("Failed to connect to database:", error.message || error);
+                reject(error);
+            } else {
+                debug("Connected to database");
+                resolve(connection);
+            }
+        });
+        connection.on('end', () => {
+            debug("Connection to database ended");
+        });
+    });
 
-    _connection.on('connect', function (err) {
-        if (err) {
-            console.error("Failed to connect to database:", err.message || err);
-        } else {
-            debug("Connected to database");
-            connection = _connection;
-            setImmediate(collect);
-            collectInterval = setInterval(collect, config.interval);
-        }
-    });
-    _connection.on('end', function () {
-        debug("Connection to database ended");
-        dead();
-    });
 }
 
 /**
  * Recursive function that executes all collectors sequentially
- * @param collectors metrics: Metric|Metric[], query: string, collect: function(rows, metric)
+ *
+ * @param connection database connection
+ * @param collector single metric: {query: string, collect: function(rows, metric)}
+ *
+ * @returns Promise of collect operation (no value returned)
  */
-function measure(collectors) {
-    if(connection) {
-        const collector = collectors.shift();
-        connection.execSql(new Request(collector.query, function (err, rowCount, rows) {
-            if (!err) {
+async function measure(connection, collector) {
+    return new Promise((resolve) => {
+        let request = new Request(collector.query, (error, rowCount, rows) => {
+            if (!error) {
                 collector.collect(rows, collector.metrics);
+                resolve();
             } else {
-                console.error("Error executing SQL query", collector.query, err);
+                console.error("Error executing SQL query", collector.query, error);
+                resolve();
             }
-            if (collectors.length) {
-                measure(collectors)
-            }
-        }));
-    }
+        });
+        connection.execSql(request);
+    });
 }
 
 /**
  * Function that collects from an active server. Should be called via setInterval setup.
+ *
+ * @param connection database connection
+ *
+ * @returns Promise of execution (no value returned)
  */
-function collect() {
-    if (connection) {
-        up.set(1);
-        measure(metrics.slice());
+async function collect(connection) {
+    up.set(1);
+    for (let i = 0; i < metrics.length; i++) {
+        await measure(connection, metrics[i]);
     }
 }
 
-/**
- * Function that marks the server as unavailable and unable to receive any queries
- */
-function dead() {
-    debug("Unable to query database");
-    up.set(0);
-
-    connection = null;
-    if (collectInterval) {
-        clearImmediate(collectInterval);
-    }
-    collectInterval = null;
-    setTimeout(connect, config.reconnect);
-}
-
-app.get('/metrics', function (req, res) {
+app.get('/metrics', async (req, res) => {
     res.contentType(client.register.contentType);
-    if (collectInterval) {
-        res.send(client.register.metrics())
-    } else {
-        res.send(client.register.getSingleMetricAsString("UP"));
+
+    try {
+        let connection = await connect();
+        await collect(connection, metrics);
+        connection.close();
+        res.send(client.register.metrics());
+    } catch (error) {
+        // error connecting
+        up.set(0);
+        res.header("X-Error", error.message || error);
+        res.send(client.register.getSingleMetricAsString(up.name));
     }
 });
 
-app.listen(config.port, function () {
-    debug('Prometheus-MSSQL Exporter listening on local port', config.port);
+const server = app.listen(config.port, function () {
+    debug(`Prometheus-MSSQL Exporter listening on local port ${config.port} monitoring ${config.connect.userName}@${config.connect.server}:${config.connect.port}`);
 });
 
 process.on('SIGINT', function () {
-    if (collectInterval) {
-        clearImmediate(collectInterval);
-    }
-    process.exit();
+    server.close();
+    process.exit(0);
 });
-
-connect();

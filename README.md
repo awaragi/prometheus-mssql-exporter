@@ -1,7 +1,7 @@
 Prometheus MSSQL Exporter Docker Container
 =============
 
-Prometheus exporter for Microsoft SQL Server. Exposes the following metrics
+Prometheus exporter for Microsoft SQL Server (MSSQL). Exposes the following metrics
 
 *  mssql_instance_local_time Number of seconds since epoch on local instance
 *  mssql_connections{database,state} Number of active connections
@@ -33,8 +33,6 @@ The image supports the following environments and exposes port 4000
 * **PORT** server port (optional defaults to 1443)
 * **USERNAME** access user (required)
 * **PASSWORD** access password (required)
-* **RECONNECT** time in ms between retries to reconnect to a unavailable server (optional defaults to 5000ms)
-* **INTERVAL** time in ms between metrics collections (optional defaults to 60000ms)
 * **DEBUG** comma delimited list of enabled logs (optional currently supports app and metrics)
 
 It is **_required_** that the specified user has the following permissions
@@ -52,8 +50,6 @@ SERVER=sqlserver
 PORT=sqlport<1443>
 USERNAME=sqluser
 PASSWORD=sqluserpassword
-RECONNECT=ms<1000>
-INTERVAL=ms<1000>
 EXPOSE=webport<4000>
 node ./index.js
 `
@@ -70,3 +66,5 @@ for example:
 ### Launch a mock mssql server
 
 `docker run -e ACCEPT_EULA=Y -e SA_PASSWORD=qkD4x3yy -p 1433:1433 --name mssql -d microsoft/mssql-server-linux`
+
+To use a persistent storage include `-v /mypath:/var/opt/mssql/data`
