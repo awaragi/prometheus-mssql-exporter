@@ -10,10 +10,10 @@ const metrics = require('./metrics').metrics;
 let config = {
     connect: {
         server: process.env["SERVER"],
-        port: process.env["PORT"] || 1433,
         userName: process.env["USERNAME"],
         password: process.env["PASSWORD"],
         options: {
+            port: process.env["PORT"] || 1433,
             encrypt: true,
             rowCollectionOnRequestCompletion: true
         }
@@ -110,7 +110,7 @@ app.get('/metrics', async (req, res) => {
 });
 
 const server = app.listen(config.port, function () {
-    debug(`Prometheus-MSSQL Exporter listening on local port ${config.port} monitoring ${config.connect.userName}@${config.connect.server}:${config.connect.port}`);
+    debug(`Prometheus-MSSQL Exporter listening on local port ${config.port} monitoring ${config.connect.userName}@${config.connect.server}:${config.connect.options.port}`);
 });
 
 process.on('SIGINT', function () {
