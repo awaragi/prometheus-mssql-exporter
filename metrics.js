@@ -69,6 +69,90 @@ where counter_name = 'Errors/sec' AND instance_name = 'User Errors'`,
     }
 };
 
+const mssql_sql_compilations = {
+    metrics: {
+        mssql_sql_compilations: new client.Gauge({name: 'mssql_sql_compilations', help: 'Number of SQL compilations per second. Indicates the number of times the compile code path is entered. Includes compiles caused by statement-level recompilations in SQL Server. After SQL Server user activity is stable, this value reaches a steady state'})
+    },
+    query: `SELECT cntr_value
+FROM sys.dm_os_performance_counters
+where counter_name = 'SQL Compilations/sec'`,
+    collect: function (rows, metrics) {
+        const mssql_sql_compilations = rows[0][0].value;
+        debug("Fetch number of SQL compilations/sec", mssql_sql_compilations);
+        metrics.mssql_sql_compilations.set(mssql_sql_compilations)
+    }
+};
+
+const mssql_sql_recompilations = {
+    metrics: {
+        mssql_sql_recompilations: new client.Gauge({name: 'mssql_sql_recompilations', help: 'Number of statement recompiles per second. Counts the number of times statement recompiles are triggered. Generally, you want the recompiles to be low'})
+    },
+    query: `SELECT cntr_value
+FROM sys.dm_os_performance_counters
+where counter_name = 'SQL Re-Compilations/sec'`,
+    collect: function (rows, metrics) {
+        const mssql_sql_recompilations = rows[0][0].value;
+        debug("Fetch number of SQL recompilations/sec", mssql_sql_recompilations);
+        metrics.mssql_sql_recompilations.set(mssql_sql_recompilations)
+    }
+};
+
+const mssql_buffer_cache_hit_ratio = {
+    metrics: {
+        mssql_buffer_cache_hit_ratio: new client.Gauge({name: 'mssql_buffer_cache_hit_ratio', help: 'Indicates the percentage of pages found in the buffer cache without having to read from disk. The ratio is the total number of cache hits divided by the total number of cache lookups over the last few thousand page accesses. After a long period of time, the ratio moves very little'})
+    },
+    query: `SELECT cntr_value
+FROM sys.dm_os_performance_counters
+where counter_name = 'Buffer cache hit ratio'`,
+    collect: function (rows, metrics) {
+        const mssql_buffer_cache_hit_ratio = rows[0][0].value;
+        debug("Fetch buffer cache hit ratio", mssql_buffer_cache_hit_ratio);
+        metrics.mssql_buffer_cache_hit_ratio.set(mssql_buffer_cache_hit_ratio)
+    }
+};
+
+const mssql_checkpoint_pages = {
+    metrics: {
+        mssql_checkpoint_pages: new client.Gauge({name: 'mssql_checkpoint_pages', help: 'Indicates the number of pages flushed to disk per second by a checkpoint or other operation that require all dirty pages to be flushed'})
+    },
+    query: `SELECT cntr_value
+FROM sys.dm_os_performance_counters
+where counter_name = 'Checkpoint pages/sec'`,
+    collect: function (rows, metrics) {
+        const mssql_checkpoint_pages = rows[0][0].value;
+      debug("Fetch number of checkpoint pages/sec", mssql_checkpoint_pages);
+        metrics.mssql_checkpoint_pages.set(mssql_checkpoint_pages)
+    }
+};
+
+const mssql_lock_waits = {
+    metrics: {
+        mssql_lock_waits: new client.Gauge({name: 'mssql_lock_waits', help: 'Number of lock requests per second that required the caller to wait'})
+    },
+    query: `SELECT cntr_value
+FROM sys.dm_os_performance_counters
+where counter_name = 'Lock waits/sec' and instance_name = '_Total'`,
+    collect: function (rows, metrics) {
+        const mssql_lock_waits = rows[0][0].value;
+      debug("Fetch number of lock waits/sec", mssql_lock_waits);
+        metrics.mssql_lock_waits.set(mssql_lock_waits)
+    }
+};
+
+const mssql_page_splits = {
+    metrics: {
+        mssql_page_splits: new client.Gauge({name: 'mssql_page_splits', help: 'Number of page splits per second that occur as the result of overflowing index pages'})
+    },
+    query: `SELECT cntr_value
+FROM sys.dm_os_performance_counters
+where counter_name = 'Page Splits/sec'`,
+    collect: function (rows, metrics) {
+        const mssql_page_splits = rows[0][0].value;
+      debug("Fetch number of page splits/sec", mssql_page_splits);
+        metrics.mssql_page_splits.set(mssql_page_splits)
+    }
+};
+
 const mssql_kill_connection_errors = {
     metrics: {
         mssql_kill_connection_errors: new client.Gauge({name: 'mssql_kill_connection_errors', help: 'Number of kill connection errors/sec since last restart'})
@@ -208,6 +292,12 @@ const metrics = [
     mssql_connections,
     mssql_deadlocks,
     mssql_user_errors,
+    mssql_sql_compilations,
+    mssql_sql_recompilations,
+    mssql_buffer_cache_hit_ratio,
+    mssql_checkpoint_pages,
+    mssql_lock_waits,
+    mssql_page_splits, 
     mssql_kill_connection_errors,
     mssql_log_growths,
     mssql_page_life_expectancy,

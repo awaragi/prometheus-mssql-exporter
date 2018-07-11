@@ -7,6 +7,12 @@ Prometheus exporter for Microsoft SQL Server (MSSQL). Exposes the following metr
 *  mssql_connections{database,state} Number of active connections
 *  mssql_deadlocks Number of lock requests per second that resulted in a deadlock since last restart
 *  mssql_user_errors Number of user errors/sec since last restart
+*  mssql_sql_compilations Number of SQL compilations per second. Indicates the number of times the compile code path is entered. Includes compiles caused by statement-level recompilations in SQL Server. After SQL Server user activity is stable, this value reaches a steady state
+*  mssql_sql_recompilations Number of statement recompiles per second. Counts the number of times statement recompiles are triggered. Generally, you want the recompiles to be low
+*  mssql_buffer_cache_hit_ratio Indicates the percentage of pages found in the buffer cache without having to read from disk. The ratio is the total number of cache hits divided by the total number of cache lookups over the last few thousand page accesses. After a long period of time, the ratio moves very little
+*  mssql_checkpoint_pages Indicates the number of pages flushed to disk per second by a checkpoint or other operation that require all dirty pages to be flushed
+*  mssql_lock_waits Number of lock requests per second that required the caller to wait
+* mssql_page_splits Number of page splits per second that occur as the result of overflowing index pages
 *  mssql_kill_connection_errors Number of kill connection errors/sec since last restart
 *  mssql_log_growths{database} Total number of times the transaction log for the database has been expanded last restart
 *  mssql_page_life_expectancy Indicates the minimum number of seconds a page will stay in the buffer pool on this node without references. The traditional advice from Microsoft used to be that the PLE should remain above 300 seconds
