@@ -120,7 +120,7 @@ FROM sys.dm_os_performance_counters
 where counter_name = 'Checkpoint pages/sec'`,
     collect: function (rows, metrics) {
         const mssql_checkpoint_pages = rows[0][0].value;
-      debug("Fetch number of checkpoint pages/sec", mssql_checkpoint_pages);
+        debug("Fetch number of checkpoint pages/sec", mssql_checkpoint_pages);
         metrics.mssql_checkpoint_pages.set(mssql_checkpoint_pages)
     }
 };
