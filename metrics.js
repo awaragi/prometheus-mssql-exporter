@@ -203,6 +203,21 @@ from sys.dm_os_sys_memory`,
     }
 };
 
+const mssql_database_state = {
+    metrics: {
+        mssql_database_state: new client.Gauge({name: 'mssql_database_state', help: 'State of databases: 0 = ONLINE, 1 = RESTORING, 2 = RECOVERING 3 = RECOVERY_PENDING 4 = SUSPECT 5 = EMERGENCY 6 = OFFLINE 7 = COPYING 10 = OFFLINE_SECONDARY', labelNames: ['database']})
+    },
+    query: `select name, state from sys.databases;`,
+    collect: function (rows, metrics) {
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const database = row[0].value;
+            const state = row[1].value;
+            metrics.mssql_database_state.set({database: database}, state);
+        }
+    }
+};
+
 const metrics = [
     mssql_instance_local_time,
     mssql_connections,
@@ -214,7 +229,8 @@ const metrics = [
     mssql_io_stall,
     mssql_batch_requests,
     mssql_os_process_memory,
-    mssql_os_sys_memory
+    mssql_os_sys_memory,
+    mssql_database_state,
 ];
 
 module.exports = {
