@@ -1,0 +1,86 @@
+# Reading one metric with no label
+mssql_instance_local_time_custom:
+  metrics:
+    - name: "mssql_instance_local_time_custom"
+      help: "Number of seconds since epoch on local instance (custom version)"
+  query: "SELECT DATEDIFF(second, '19700101', GETUTCDATE())"
+  collect:
+    metrics:
+      - submetrics:
+          - position: 0
+
+# Reading one metric with labels
+mssql_connections_custom:
+  metrics:
+    - name: "mssql_connections_custom"
+      help: "Number of active connections (custom version)"
+      labelnames: [database, state]
+  query: "SELECT DB_NAME(sP.dbid), COUNT(sP.spid) FROM sys.sysprocesses sP GROUP BY DB_NAME(sP.dbid)"
+  collect:
+    metrics:
+      - shared_labels: 
+          - key: database
+            position: 0
+          - key: state
+            value: current 
+        submetrics:
+          - position: 1
+
+# Reading two or more metrics --
+# note the order of the `mssql_os_process_memory_custom.metrics` array matches the `mssql_os_process_memory_custom.collect.metrics` array
+mssql_os_process_memory_custom:
+  metrics:
+    - name: 'mssql_page_fault_count_custom'
+      help: 'Number of page faults since last restart (custom version)'
+    - name: 'mssql_memory_utilization_percentage_custom'
+      help: 'Percentage of memory utilization (custom version)'
+  query: "SELECT page_fault_count memory_utilization_percentage from sys.dm_os_process_memory"
+  collect:
+    metrics:
+      - submetrics:
+          - position: 0
+      - submetrics:
+          - position: 1
+    
+# Reading two or more metrics where one of those metrics involves multiple outputs
+mssql_io_stall_custom:
+  metrics:
+    - name: 'mssql_io_stall_custom'
+      help: 'Wait time (ms) of stall since last restart (custom version)' 
+      labelNames: ['database', 'type']
+    - name: 'mssql_io_stall_total_custom'
+      help: 'Wait time (ms) of stall since last restart (custom version)' 
+      labelNames: ['database']
+  query: "SELECT cast(DB_Name(a.database_id) as varchar) as name, max(io_stall_read_ms), max(io_stall_write_ms), max(io_stall), max(io_stall_queued_read_ms), max(io_stall_queued_write_ms) FROM sys.dm_io_virtual_file_stats(null, null) a INNER JOIN sys.master_files b ON a.database_id = b database_id and a.file_id = b.file_id group by a.database_id"
+  collect:
+    metrics:
+      - shared_labels: 
+          - key: database
+            position: 0
+        submetrics:
+          - position: 1
+            name: read
+            additional_labels:
+              - key: type
+              - value: "read"
+          - position: 2
+            name: write
+            additional_labels:
+              - key: type
+              - value: "write"
+          - position: 4
+            name: queued_read
+            additional_labels:
+              - key: type
+              - value: "queued_read"
+          - position: 5
+            name: queued_write
+            additional_labels:
+              - key: type
+              - value: "queued_write"
+      - shared_labels: 
+          - key: database
+            position: 0
+        submetrics:
+          - position: 3
+    
