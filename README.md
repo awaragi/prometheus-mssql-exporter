@@ -27,12 +27,17 @@ Usage
 
 `docker run -e SERVER=192.168.56.101 -e USERNAME=SA -e PASSWORD=qkD4x3yy -e DEBUG=app -p 4000:4000 --name prometheus-mssql-exporter awaragi/prometheus-mssql-exporter`
 
+For running the exporter with custom metrics, add a yaml file with the custom metrics (see [queries.yaml](queries.yaml) for a sample and [QUERIES.md](QUERIES.md) for a guide), and add the path to that file:
+
+`docker run -e CUSTOM_METRICS_PATH=/path/to/queries.yaml -e SERVER=192.168.56.101 -e USERNAME=SA -e PASSWORD=qkD4x3yy -e DEBUG=app -p 4000:4000 --name prometheus-mssql-exporter awaragi/prometheus-mssql-exporter`
+
 The image supports the following environments and exposes port 4000
 
 * **SERVER** server ip or dns name (required)
 * **PORT** server port (optional defaults to 1443)
 * **USERNAME** access user (required)
 * **PASSWORD** access password (required)
+* **CUSTOM_METRICS_PATH** path to the custom metrics yaml (optional)
 * **DEBUG** comma delimited list of enabled logs (optional currently supports app and metrics)
 
 It is **_required_** that the specified user has the following permissions
