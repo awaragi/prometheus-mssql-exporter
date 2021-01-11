@@ -28,9 +28,9 @@
   "dependencies": {
     "debug": "^2.6.8",
     "express": "4.15.2",
+    "js-yaml": "4.0.0",
     "prom-client": "9.1.1",
-    "tedious": "2.0.0",
-    "js-yaml": "4.0.0"
+    "tedious": "2.0.0"
   },
   "devDependencies": {
     "nodemon": "^1.11.0"

@@ -222,7 +222,7 @@ let metrics = default_metrics;
 if (process.env["CUSTOM_METRICS_PATH"]) {
     let [custom_metrics, err] = parse_custom_metrics(process.env["CUSTOM_METRICS_PATH"])
     if (err != null) {
-        // return error
+        throw new Error("Error parsing custom metrics")
     }
     metrics = metrics.concat(custom_metrics)
 }

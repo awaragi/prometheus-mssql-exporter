@@ -1,6 +1,7 @@
 /**
  * Functions for reading and parsing yaml file as additional metric queries
  */
+const debug = require("debug")("metrics");
 const fs = require('fs');
 const yaml = require('js-yaml');
 const client = require('prom-client');
@@ -10,8 +11,7 @@ const client = require('prom-client');
  *
  * @param yaml_path the path to the yaml file
  *
- * @returns Array of query-based metrics objects
- * @returns Error
+ * @returns [Array of query-based metrics objects, Error]
  */
 function parse_metrics(yaml_path) {
     let metrics = []
@@ -28,8 +28,6 @@ function parse_metrics(yaml_path) {
         return [[], error]        
     }
 
-    // Our user-defined queries have a top-level name to make it easier to read
-    // but we don't require that top-level information, so we unwrap the value
     for (let raw_metric in raw_metrics) {
         metrics.push(build_metric_object(raw_metrics[raw_metric]))
     }
@@ -43,16 +41,17 @@ function parse_metrics(yaml_path) {
  * @param metric_json Metric in json form
  * example: 
  *  { 
-        metrics: [ {
-            name: 'mssql_instance_local_time_custom',
-            help: 'Number of seconds since epoch on local instance (custom version)',
-            labelnames: [ 'state' ] 
-        } ],
-        query: 'SELECT DATEDIFF(second, \'19700101\', GETUTCDATE())',
-        collect: { 
-            per_row: false 
-        } 
-    }
+ *      metrics: [ {
+ *          name: 'mssql_instance_local_time_custom',
+ *          help: 'Number of seconds since epoch on local instance (custom version)' 
+ *      } ],
+ *      query: 'SELECT DATEDIFF(second, \'19700101\', GETUTCDATE())',
+ *      collect: { 
+ *          metrics: [ { 
+ *              submetrics: [ { position: 0 } ] 
+ *          } ]
+ *      } 
+ *  }
  *
  * @returns object usable by index.js; see metrics.js for examples
  */
@@ -71,7 +70,7 @@ function build_metric_object(metric_json) {
 /**
  * Function that reads JS object and returns collect function
  *
- * @param metric_json Metric in json forml; see queries.yaml for examples
+ * @param metric_json Metric in json forml; see queries.yaml for examples and QUERIES.md for documentation
  *
  * @returns function
  */
@@ -84,21 +83,20 @@ function build_collect_function(metric_json) {
             for (let i = 0; i < metric_json.collect.metrics.length; i++) {
                 let labels = {}
                 if (metric_json.collect.metrics[i].shared_labels) {
-                    label = add_labels({}, metric_json.collect.metrics[i].shared_labels, row)
+                    labels = add_labels(labels, metric_json.collect.metrics[i].shared_labels, row)
                 }
                 for (let position_obj of metric_json.collect.metrics[i].submetrics) {
-                    const fetched_value = row[position_obj.position].value;
+                    let fetched_value = row[position_obj.position].value;
                     if (position_obj.name) {
                         debug("Fetch ", metric_json.metrics[i].name, position_obj.name, fetched_value);
                     } else {
                         debug("Fetch ", metric_json.metrics[i].name, fetched_value);
                     }
-                    let final_labels = labels
-                    if (position_obj.additional_label) {
-                        final_labels = add_labels(labels, position_obj.additional_label, row)
+                    if (position_obj.additional_labels) {
+                        labels = add_labels(labels, position_obj.additional_labels, row)
                     }
-                    if (Object.keys(final_labels).length != 0) {
-                        metrics[metric_json.metrics[i].name].set(final_labels, fetched_value);
+                    if (Object.keys(labels).length != 0) {
+                        metrics[metric_json.metrics[i].name].set(labels, fetched_value);
                     } else {
                         metrics[metric_json.metrics[i].name].set(fetched_value);
                     }    
