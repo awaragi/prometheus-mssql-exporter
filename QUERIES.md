@@ -4,24 +4,17 @@ A query in yaml consists of a top-level name, like `mssql_instance_local_time`, 
 
 * `metrics`: a list of the new Prometheus gauges to register, consisting of a name, help, and labelNames
 * `query`: the mssql query to invoke to get the metrics
-* `collect`: a multi-level structure to be turned into a collect function that turns the raw output of the query into a Prometheus metric
+* `collect`: an array of objects to be turned into a collect function that turns the raw output of the query into a Prometheus metric; these objects match the Prometheus gauges defined in the `metrics` field
 
-The `collect` field has the following structure:
+The object in the `collect` array has the following structure:
 
-```yaml
-collect:            # Top level name
-  metrics:          # An array of metrics that match the gauges defined in the `metrics` field above; each Prometheus gauge can actually include multiple expressed metrics, though most of the time there is a one-to-one relation between gauges and metrics
-```
-
-In the `collect.metrics` array, the metric object has the following structure:
-
-* `shared_labels`: for defining labels that are shared by all the entries in that metric
-* `submetrics`: an array of submetric objects; a submetric object defines what position (in the mssql row) the metric actually comes from, as well as any labels that are specific to that submetric
+* `shared_labels`: for defining labels that are shared by all the entries in that gauge
+* `metrics`: an array of objects; this object defines what position (in the mssql row) the metric actually comes from, as well as any labels that are specific to that metric
 
 For instance, the following defines a single metric with no shared labels where the data is in the 0th position of the received row:
 
 ```yaml
-- submetrics:
+- metrics:
     - position: 0
 ```
 
@@ -33,16 +26,16 @@ For another example, the following defines a single metric where each row's data
       position: 0
     - key: state
       value: current 
-  submetrics:
+  metrics:
     - position: 1
 ```
 
-Multiple submetrics may be derived from a single metric, as when a mssql query returns two values, both of which you want to forward to Prometheus as separate values:
+Multiple metrics may be derived from a single query, as when a mssql query returns two values, both of which you want to forward to Prometheus as separate values:
 
 ```yaml
-- submetrics:
+- metrics:
     - position: 0
-- submetrics:
+- metrics:
     - position: 1
 ```
 
@@ -52,7 +45,7 @@ For a final example, say that you had a query similar to the current `mssql_io_s
 - shared_labels: 
     - key: database
       position: 0
-  submetrics:
+  metrics:
     - position: 1
       name: read
       additional_labels:
@@ -75,7 +68,7 @@ For a final example, say that you had a query similar to the current `mssql_io_s
           value: "queued_write"
 ```
 
-To step through this, each of these metrics has a database label (derived from the 0th position of the row); but each row actually contains several metrics at different positions. We add additional labels on a per-metric basis (with key/value as our structure); the `name` entry of the submetric is included for debugging purposes.
+To step through this, each of these metrics has a database label (derived from the 0th position of the row); but each row actually contains several metrics at different positions. We add additional labels on a per-metric basis (with key/value as our structure); the `name` entry of the metric is included for debugging purposes.
 
 ## Creating new queries
 
