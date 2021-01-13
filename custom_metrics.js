@@ -46,11 +46,11 @@ function parse_metrics(yaml_path) {
  *          help: 'Number of seconds since epoch on local instance (custom version)' 
  *      } ],
  *      query: 'SELECT DATEDIFF(second, \'19700101\', GETUTCDATE())',
- *      collect: { 
+ *      collect: [ { 
  *          metrics: [ { 
- *              submetrics: [ { position: 0 } ] 
- *          } ]
- *      } 
+ *              position: 0 
+ *          } ] 
+ *      } ]
  *  }
  *
  * @returns object usable by index.js; see metrics.js for examples
@@ -80,12 +80,12 @@ function build_collect_function(metric_json) {
         for (let row_pos = 0; row_pos < rows.length; row_pos++) {
             let row = rows[row_pos];
             // For each row, we will collect each metric, including the labels specified
-            for (let i = 0; i < metric_json.collect.metrics.length; i++) {
+            for (let i = 0; i < metric_json.collect.length; i++) {
                 let labels = {}
-                if (metric_json.collect.metrics[i].shared_labels) {
-                    labels = add_labels(labels, metric_json.collect.metrics[i].shared_labels, row)
+                if (metric_json.collect[i].shared_labels) {
+                    labels = add_labels(labels, metric_json.collect[i].shared_labels, row)
                 }
-                for (let position_obj of metric_json.collect.metrics[i].submetrics) {
+                for (let position_obj of metric_json.collect[i].metrics) {
                     let fetched_value = row[position_obj.position].value;
                     if (position_obj.name) {
                         debug("Fetch ", metric_json.metrics[i].name, position_obj.name, fetched_value);
