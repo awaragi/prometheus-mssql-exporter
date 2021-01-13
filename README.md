@@ -31,14 +31,16 @@ For running the exporter with custom metrics, add a yaml file with the custom me
 
 `docker run -e CUSTOM_METRICS_PATH=/path/to/queries.yaml -e SERVER=192.168.56.101 -e USERNAME=SA -e PASSWORD=qkD4x3yy -e DEBUG=app -p 4000:4000 --name prometheus-mssql-exporter awaragi/prometheus-mssql-exporter`
 
+Note: CUSTOM_METRICS_PATH supports multiple yaml files if necessary; pass them all as a comma-delimited list
+
 The image supports the following environments and exposes port 4000
 
 * **SERVER** server ip or dns name (required)
 * **PORT** server port (optional defaults to 1443)
 * **USERNAME** access user (required)
 * **PASSWORD** access password (required)
-* **CUSTOM_METRICS_PATH** path to the custom metrics yaml (optional)
-* **DEBUG** comma delimited list of enabled logs (optional currently supports app and metrics)
+* **CUSTOM_METRICS_PATH** path to the custom metrics yaml or yamls (optional); pass as a single path or as a comma-delimited list of paths
+* **DEBUG** comma-delimited list of enabled logs (optional currently supports app and metrics)
 
 It is **_required_** that the specified user has the following permissions
 

@@ -220,11 +220,13 @@ const default_metrics = [
 
 let metrics = default_metrics;
 if (process.env["CUSTOM_METRICS_PATH"]) {
-    let [custom_metrics, err] = parse_custom_metrics(process.env["CUSTOM_METRICS_PATH"])
-    if (err != null) {
-        throw new Error("Error parsing custom metrics")
+    for (let yaml_path of process.env["CUSTOM_METRICS_PATH"].split(",")) {
+        let [custom_metrics, err] = parse_custom_metrics(yaml_path)
+        if (err != null) {
+            throw new Error("Error parsing custom metrics")
+        }
+        metrics = metrics.concat(custom_metrics)
     }
-    metrics = metrics.concat(custom_metrics)
 }
 
 module.exports = {
