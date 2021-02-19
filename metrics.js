@@ -83,6 +83,22 @@ where counter_name = 'Errors/sec' AND instance_name = 'Kill Connection Errors'`,
     }
 };
 
+const mssql_database_state = {
+    metrics: {
+        mssql_database_state: new client.Gauge({name: 'mssql_database_state', help: 'Databases states: 0=ONLINE 1=RESTORING 2=RECOVERING 3=RECOVERY_PENDING 4=SUSPECT 5=EMERGENCY 6=OFFLINE 7=COPYING 10=OFFLINE_SECONDARY', labelNames: ['database']}),
+    },
+    query: `SELECT name,state FROM master.sys.databases`,
+    collect: function (rows, metrics) {
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const database = row[0].value;
+            const mssql_database_state = row[1].value;
+            debug("Fetch state for database", database);
+            metrics.mssql_database_state.set({database: database}, mssql_database_state);
+        }
+    }
+};
+
 const mssql_log_growths = {
     metrics: {
         mssql_log_growths: new client.Gauge({name: 'mssql_log_growths', help: 'Total number of times the transaction log for the database has been expanded last restart', labelNames: ['database']}),
@@ -205,10 +221,11 @@ from sys.dm_os_sys_memory`,
 
 const metrics = [
     mssql_instance_local_time,
-    mssql_connections,
+	mssql_connections,
     mssql_deadlocks,
     mssql_user_errors,
     mssql_kill_connection_errors,
+    mssql_database_state,
     mssql_log_growths,
     mssql_page_life_expectancy,
     mssql_io_stall,
