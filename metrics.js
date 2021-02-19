@@ -240,7 +240,7 @@ from sys.dm_os_sys_memory`,
 
 const metrics = [
     mssql_instance_local_time,
-	mssql_connections,
+    mssql_connections,
     mssql_deadlocks,
     mssql_user_errors,
     mssql_kill_connection_errors,
