@@ -117,25 +117,6 @@ and  instance_name <> '_Total'`,
     }
 };
 
-const mssql_database_filesize = {
-    metrics: {
-        mssql_database_filesize: new client.Gauge({name: 'mssql_database_filesize', help: 'Physical sizes of files used by database in KB, their names and types (0=rows, 1=log, 2=filestream,3=n/a 4=fulltext(before v2008 of MSSQL))', labelNames: ['database','logicalname','type','filename']}),
-    },
-    query: `SELECT DB_NAME(database_id) AS database_name, Name AS logical_name, type, physical_name, (size * 8) size_kb FROM sys.master_files`,
-    collect: function (rows, metrics) {
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            const database = row[0].value;
-			const logicalname = row[1].value
-			const type = row[2].value
-			const filename = row[3].value
-			const mssql_database_filesize = row[4].value;
-            debug("Fetch size of files for database ", database);
-            metrics.mssql_database_filesize.set({database: database, logicalname: logicalname, type: type, filename: filename}, mssql_database_filesize);
-        }
-    }
-};
-
 const mssql_page_life_expectancy = {
     metrics: {
         mssql_page_life_expectancy: new client.Gauge({name: 'mssql_page_life_expectancy', help: 'Indicates the minimum number of seconds a page will stay in the buffer pool on this node without references. The traditional advice from Microsoft used to be that the PLE should remain above 300 seconds'})
@@ -246,7 +227,6 @@ const metrics = [
     mssql_kill_connection_errors,
     mssql_database_state,
     mssql_log_growths,
-	mssql_database_filesize,
     mssql_page_life_expectancy,
     mssql_io_stall,
     mssql_batch_requests,
