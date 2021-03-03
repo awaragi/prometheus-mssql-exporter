@@ -30,7 +30,7 @@ Usage
 The image supports the following environments and exposes port 4000
 
 * **SERVER** server ip or dns name (required)
-* **PORT** server port (optional defaults to 1443)
+* **PORT** server port (optional defaults to 1433)
 * **USERNAME** access user (required)
 * **PASSWORD** access password (required)
 * **DEBUG** comma delimited list of enabled logs (optional currently supports app and metrics)
@@ -47,7 +47,7 @@ Development
 
 `
 SERVER=sqlserver
-PORT=sqlport<1443>
+PORT=sqlport<1433>
 USERNAME=sqluser
 PASSWORD=sqluserpassword
 EXPOSE=webport<4000>
