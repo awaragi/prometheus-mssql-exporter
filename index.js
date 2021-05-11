@@ -80,7 +80,7 @@ async function measure(connection, collector) {
 }
 
 /**
- * Function that collects from an active server. Should be called via setInterval setup.
+ * Function that collects from an active server.
  *
  * @param connection database connection
  *
