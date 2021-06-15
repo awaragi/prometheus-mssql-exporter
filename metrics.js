@@ -83,6 +83,22 @@ where counter_name = 'Errors/sec' AND instance_name = 'Kill Connection Errors'`,
     }
 };
 
+const mssql_database_state = {
+    metrics: {
+        mssql_database_state: new client.Gauge({name: 'mssql_database_state', help: 'Databases states: 0=ONLINE 1=RESTORING 2=RECOVERING 3=RECOVERY_PENDING 4=SUSPECT 5=EMERGENCY 6=OFFLINE 7=COPYING 10=OFFLINE_SECONDARY', labelNames: ['database']}),
+    },
+    query: `SELECT name,state FROM master.sys.databases`,
+    collect: function (rows, metrics) {
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const database = row[0].value;
+            const mssql_database_state = row[1].value;
+            debug("Fetch state for database", database);
+            metrics.mssql_database_state.set({database: database}, mssql_database_state);
+        }
+    }
+};
+
 const mssql_log_growths = {
     metrics: {
         mssql_log_growths: new client.Gauge({name: 'mssql_log_growths', help: 'Total number of times the transaction log for the database has been expanded last restart', labelNames: ['database']}),
@@ -97,6 +113,25 @@ and  instance_name <> '_Total'`,
             const mssql_log_growths = row[1].value;
             debug("Fetch number log growths for database", database);
             metrics.mssql_log_growths.set({database: database}, mssql_log_growths);
+        }
+    }
+};
+
+const mssql_database_filesize = {
+    metrics: {
+        mssql_database_filesize: new client.Gauge({name: 'mssql_database_filesize', help: 'Physical sizes of files used by database in KB, their names and types (0=rows, 1=log, 2=filestream,3=n/a 4=fulltext(before v2008 of MSSQL))', labelNames: ['database','logicalname','type','filename']}),
+    },
+    query: `SELECT DB_NAME(database_id) AS database_name, Name AS logical_name, type, physical_name, (size * 8) size_kb FROM sys.master_files`,
+    collect: function (rows, metrics) {
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const database = row[0].value;
+			const logicalname = row[1].value
+			const type = row[2].value
+			const filename = row[3].value
+			const mssql_database_filesize = row[4].value;
+            debug("Fetch size of files for database ", database);
+            metrics.mssql_database_filesize.set({database: database, logicalname: logicalname, type: type, filename: filename}, mssql_database_filesize);
         }
     }
 };
@@ -209,7 +244,9 @@ const metrics = [
     mssql_deadlocks,
     mssql_user_errors,
     mssql_kill_connection_errors,
+    mssql_database_state,
     mssql_log_growths,
+    mssql_database_filesize,
     mssql_page_life_expectancy,
     mssql_io_stall,
     mssql_batch_requests,

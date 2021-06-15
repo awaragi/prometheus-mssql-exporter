@@ -8,7 +8,9 @@ Prometheus exporter for Microsoft SQL Server (MSSQL). Exposes the following metr
 *  mssql_deadlocks Number of lock requests per second that resulted in a deadlock since last restart
 *  mssql_user_errors Number of user errors/sec since last restart
 *  mssql_kill_connection_errors Number of kill connection errors/sec since last restart
+*  mssql_database_state{database} State of each database (0=online 1=restoring 2=recovering 3=recovery pending 4=suspect 5=emergency 6=offline 7=copying 10=offline secondary)
 *  mssql_log_growths{database} Total number of times the transaction log for the database has been expanded last restart
+*  mssql_database_filesize{database,logicalname,type,filename} Physical sizes of files used by database in KB, their names and types (0=rows, 1=log, 2=filestream,3=n/a 4=fulltext(prior to version 2008 of MS SQL Server))
 *  mssql_page_life_expectancy Indicates the minimum number of seconds a page will stay in the buffer pool on this node without references. The traditional advice from Microsoft used to be that the PLE should remain above 300 seconds
 *  mssql_io_stall{database,type} Wait time (ms) of stall since last restart
 *  mssql_io_stall_total{database} Wait time (ms) of stall since last restart
