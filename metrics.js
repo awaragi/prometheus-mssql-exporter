@@ -4,6 +4,7 @@
  */
 const debug = require("debug")("metrics");
 const client = require('prom-client');
+const parse_custom_metrics = require('./custom_metrics').parse_metrics;
 
 // UP metric
 const up = new client.Gauge({name: 'up', help: "UP Status"});
@@ -238,7 +239,7 @@ from sys.dm_os_sys_memory`,
     }
 };
 
-const metrics = [
+const default_metrics = [
     mssql_instance_local_time,
     mssql_connections,
     mssql_deadlocks,
@@ -253,6 +254,17 @@ const metrics = [
     mssql_os_process_memory,
     mssql_os_sys_memory
 ];
+
+let metrics = default_metrics;
+if (process.env["CUSTOM_METRICS_PATH"]) {
+    for (let yaml_path of process.env["CUSTOM_METRICS_PATH"].split(",")) {
+        let [custom_metrics, err] = parse_custom_metrics(yaml_path)
+        if (err != null) {
+            throw new Error("Error parsing custom metrics")
+        }
+        metrics = metrics.concat(custom_metrics)
+    }
+}
 
 module.exports = {
     client: client,
