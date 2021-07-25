@@ -13,12 +13,12 @@ let config = {
         userName: process.env["USERNAME"],
         password: process.env["PASSWORD"],
         options: {
-            port: process.env["PORT"] || 1433,
+            port: parseInt(process.env["PORT"]) || 1433,
             encrypt: true,
             rowCollectionOnRequestCompletion: true
         }
     },
-    port: process.env["EXPOSE"] || 4000
+    port: parseInt(process.env["EXPOSE"]) || 4000
 };
 
 if (!config.connect.server) {
@@ -92,6 +92,8 @@ async function collect(connection) {
         await measure(connection, metrics[i]);
     }
 }
+
+// TODO:重定向 / 到 /metrics
 
 app.get('/metrics', async (req, res) => {
     res.contentType(client.register.contentType);
