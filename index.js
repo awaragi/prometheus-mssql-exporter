@@ -93,8 +93,6 @@ async function collect(connection) {
     }
 }
 
-// TODO:重定向 / 到 /metrics
-
 app.get('/metrics', async (req, res) => {
     res.contentType(client.register.contentType);
 
