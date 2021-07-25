@@ -93,6 +93,10 @@ async function collect(connection) {
     }
 }
 
+app.get('/', (req, res) => {
+    res.redirect('/metrics');
+})
+
 app.get('/metrics', async (req, res) => {
     res.contentType(client.register.contentType);
 
