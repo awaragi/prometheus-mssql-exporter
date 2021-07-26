@@ -26,10 +26,9 @@ const mssql_connections = {
     metrics: {
         mssql_connections: new client.Gauge({name: 'mssql_connections', help: 'Number of active connections', labelNames: ['database', 'state',]})
     },
-    query: `SELECT DB_NAME(sP.dbid)
-        , COUNT(sP.spid)
-FROM sys.sysprocesses sP
-GROUP BY DB_NAME(sP.dbid)`,
+    query: `SELECT db.name, COUNT(sP.spid)
+FROM sys.databases db INNER JOIN sys.sysprocesses sP ON sP.dbid = db.database_id
+GROUP BY db.name`,
     collect: function (rows, metrics) {
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
@@ -121,7 +120,7 @@ const mssql_database_filesize = {
     metrics: {
         mssql_database_filesize: new client.Gauge({name: 'mssql_database_filesize', help: 'Physical sizes of files used by database in KB, their names and types (0=rows, 1=log, 2=filestream,3=n/a 4=fulltext(before v2008 of MSSQL))', labelNames: ['database','logicalname','type','filename']}),
     },
-    query: `SELECT DB_NAME(database_id) AS database_name, Name AS logical_name, type, physical_name, (size * CAST(8 AS BIGINT)) size_kb FROM sys.master_files`,
+    query: `SELECT DB_NAME(database_id) AS database_name, name AS logical_name, type, physical_name, (size * CAST(8 AS BIGINT)) size_kb FROM sys.master_files`,
     collect: function (rows, metrics) {
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
