@@ -238,6 +238,7 @@ from sys.dm_os_sys_memory`,
     }
 };
 
+/*
 const mssql_database_replication = {
     metrics: {
         mssql_db_replication_status: new client.Gauge({ name: 'mssql_db_replication_status', help: 'Status of database replication' }),
@@ -312,6 +313,7 @@ order by mdh.[time]
         }
     }
 };
+*/
 
 const metrics = [
     mssql_instance_local_time,
