@@ -63,7 +63,7 @@ for example:
 
 ### building and pushing image to dockerhub
 
-`npm run build`
+`npm run docker:build`
 
 ### Launch a mock mssql server
 

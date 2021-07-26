@@ -8,13 +8,13 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 # Copy dependency definitions
-COPY package.json .
+COPY package.json ./
 
 # Install dependecies
 RUN npm install --production
 
 # Copy application
-COPY *.js .
+COPY *.js ./
 
 # Expose the port the app runs in
 EXPOSE 4000
