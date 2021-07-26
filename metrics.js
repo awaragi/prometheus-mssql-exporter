@@ -240,11 +240,11 @@ from sys.dm_os_sys_memory`,
 
 const mssql_database_replication = {
     metrics: {
-        mssql_db_replication_status: new client.Guage({ name: 'mssql_db_replication_status', help: 'Status of database replication' }),
-        mssql_db_replication_subscriber_db: new client.Guage({ name: 'mssql_db_replication_subscriber_db', help: 'Subscriber DB' }),
-        mssql_db_replication_publisher_name: new client.Guage({ name: 'mssql_db_replication_publisher_name', help: 'Publisher name' }),
-        mssql_db_replication_publisher_db: new client.Guage({ name: 'mssql_db_replication_publisher_db', help: 'Publisher DB' }),
-        mssql_db_replication_last_synchronized_time: new client.Guage({ name: 'mssql_db_replication_last_synchronized_time', help: 'Last synchronized time' })
+        mssql_db_replication_status: new client.Gauge({ name: 'mssql_db_replication_status', help: 'Status of database replication' }),
+        mssql_db_replication_subscriber_db: new client.Gauge({ name: 'mssql_db_replication_subscriber_db', help: 'Subscriber DB' }),
+        mssql_db_replication_publisher_name: new client.Gauge({ name: 'mssql_db_replication_publisher_name', help: 'Publisher name' }),
+        mssql_db_replication_publisher_db: new client.Gauge({ name: 'mssql_db_replication_publisher_db', help: 'Publisher DB' }),
+        mssql_db_replication_last_synchronized_time: new client.Gauge({ name: 'mssql_db_replication_last_synchronized_time', help: 'Last synchronized time' })
     },
     query: `SELECT
 (CASE
