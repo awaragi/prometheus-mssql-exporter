@@ -1,3 +1,6 @@
 *.iml
-/node_modules/
-/.idea/
+node_modules
+.idea
+.vscode
+.env
+package-lock.json
