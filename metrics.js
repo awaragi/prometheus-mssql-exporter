@@ -24,7 +24,7 @@ const mssql_instance_local_time = {
 
 const mssql_connections = {
     metrics: {
-        mssql_connections: new client.Gauge({name: 'mssql_connections', help: 'Number of active connections', labelNames: ['database', 'state',]})
+        mssql_connections: new client.Gauge({name: 'mssql_connections', help: 'Number of active connections', labelNames: ['database',]})
     },
     query: `SELECT db.name, COUNT(sP.spid)
 FROM sys.databases db INNER JOIN sys.sysprocesses sP ON sP.dbid = db.database_id
@@ -35,7 +35,26 @@ GROUP BY db.name`,
             const database = row[0].value;
             const mssql_connections = row[1].value;
             debug("Fetch number of connections for database", database, mssql_connections);
-            metrics.mssql_connections.set({database: database, state: 'current'}, mssql_connections);
+            metrics.mssql_connections.set({database}, mssql_connections);
+        }
+    }
+};
+
+const mssql_connections_per_client = {
+    metrics: {
+        mssql_connections_per_client: new client.Gauge({ name: 'mssql_connections_per_client', help: 'Number of active connections', labelNames: ['client',] })
+    },
+    query: `SELECT host_name, COUNT(*)
+FROM sys.dm_exec_sessions
+WHERE is_user_process=1
+GROUP BY host_name`,
+    collect: function (rows, metrics) {
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const client = row[0].value;
+            const mssql_connections = row[1].value;
+            debug("Fetch number of connections for database", client, mssql_connections);
+            metrics.mssql_connections_per_client.set({client}, mssql_connections);
         }
     }
 };
@@ -93,7 +112,7 @@ const mssql_database_state = {
             const database = row[0].value;
             const mssql_database_state = row[1].value;
             debug("Fetch state for database", database);
-            metrics.mssql_database_state.set({database: database}, mssql_database_state);
+            metrics.mssql_database_state.set({database}, mssql_database_state);
         }
     }
 };
@@ -111,7 +130,7 @@ and  instance_name <> '_Total'`,
             const database = row[0].value;
             const mssql_log_growths = row[1].value;
             debug("Fetch number log growths for database", database);
-            metrics.mssql_log_growths.set({database: database}, mssql_log_growths);
+            metrics.mssql_log_growths.set({database}, mssql_log_growths);
         }
     }
 };
@@ -130,7 +149,7 @@ const mssql_database_filesize = {
 			const filename = row[3].value
 			const mssql_database_filesize = row[4].value;
             debug("Fetch size of files for database ", database);
-            metrics.mssql_database_filesize.set({database: database, logicalname: logicalname, type: type, filename: filename}, mssql_database_filesize);
+            metrics.mssql_database_filesize.set({database, logicalname, type, filename}, mssql_database_filesize);
         }
     }
 };
@@ -174,11 +193,11 @@ group by a.database_id`,
             const queued_read = row[4].value;
             const queued_write = row[5].value;
             debug("Fetch number of stalls for database", database);
-            metrics.mssql_io_stall_total.set({database: database}, stall);
-            metrics.mssql_io_stall.set({database: database, type: "read"}, read);
-            metrics.mssql_io_stall.set({database: database, type: "write"}, write);
-            metrics.mssql_io_stall.set({database: database, type: "queued_read"}, queued_read);
-            metrics.mssql_io_stall.set({database: database, type: "queued_write"}, queued_write);
+            metrics.mssql_io_stall_total.set({database}, stall);
+            metrics.mssql_io_stall.set({database, type: "read"}, read);
+            metrics.mssql_io_stall.set({database, type: "write"}, write);
+            metrics.mssql_io_stall.set({database, type: "queued_read"}, queued_read);
+            metrics.mssql_io_stall.set({database, type: "queued_write"}, queued_write);
         }
     }
 };
@@ -195,6 +214,22 @@ FROM sys.dm_os_performance_counters where counter_name = 'Batch Requests/sec'`,
             const mssql_batch_requests = row[0].value;
             debug("Fetch number of batch requests per second", mssql_batch_requests);
             metrics.mssql_batch_requests.set(mssql_batch_requests);
+        }
+    }
+};
+
+const mssql_transactions = {
+    metrics: {
+        mssql_transactions: new client.Gauge({ name: 'mssql_transactions', help: 'TPS.' })
+    },
+    query: `SELECT TOP 1 cntr_value
+FROM sys.dm_os_performance_counters where counter_name = 'Transactions/sec'`,
+    collect: function (rows, metrics) {
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const mssql_transactions = row[0].value;
+            debug("Fetch number of transactions per second", mssql_transactions);
+            metrics.mssql_transactions.set(mssql_transactions);
         }
     }
 };
@@ -237,96 +272,21 @@ from sys.dm_os_sys_memory`,
     }
 };
 
-/*
-const mssql_database_replication = {
-    metrics: {
-        mssql_db_replication_status: new client.Gauge({ name: 'mssql_db_replication_status', help: 'Status of database replication' }),
-        mssql_db_replication_subscriber_db: new client.Gauge({ name: 'mssql_db_replication_subscriber_db', help: 'Subscriber DB' }),
-        mssql_db_replication_publisher_name: new client.Gauge({ name: 'mssql_db_replication_publisher_name', help: 'Publisher name' }),
-        mssql_db_replication_publisher_db: new client.Gauge({ name: 'mssql_db_replication_publisher_db', help: 'Publisher DB' }),
-        mssql_db_replication_last_synchronized_time: new client.Gauge({ name: 'mssql_db_replication_last_synchronized_time', help: 'Last synchronized time' })
-    },
-    query: `SELECT
-(CASE
-    WHEN mdh.runstatus =  '1' THEN 'Start - '+cast(mdh.runstatus as varchar)
-    WHEN mdh.runstatus =  '2' THEN 'Succeed - '+cast(mdh.runstatus as varchar)
-    WHEN mdh.runstatus =  '3' THEN 'InProgress - '+cast(mdh.runstatus as varchar)
-    WHEN mdh.runstatus =  '4' THEN 'Idle - '+cast(mdh.runstatus as varchar)
-    WHEN mdh.runstatus =  '5' THEN 'Retry - '+cast(mdh.runstatus as varchar)
-    WHEN mdh.runstatus =  '6' THEN 'Fail - '+cast(mdh.runstatus as varchar)
-    ELSE CAST(mdh.runstatus AS VARCHAR)
-END) [Run Status],
-mda.subscriber_db [Subscriber DB],
-mda.publication [PUB Name],
-CONVERT(VARCHAR(25),mdh.[time]) [LastSynchronized],
-und.UndelivCmdsInDistDB [UndistCom],
-mdh.comments [Comments],
-'select * from distribution.dbo.msrepl_errors (nolock) where id = ' + CAST(mdh.error_id AS VARCHAR(8)) [Query More Info],
-mdh.xact_seqno [SEQ_NO],
-(CASE
-    WHEN mda.subscription_type =  '0' THEN 'Push'
-    WHEN mda.subscription_type =  '1' THEN 'Pull'
-    WHEN mda.subscription_type =  '2' THEN 'Anonymous'
-    ELSE CAST(mda.subscription_type AS VARCHAR)
-END) [SUB Type],
-mda.publisher_db+' - '+CAST(mda.publisher_database_id as varchar) [Publisher DB],
-mda.name [Pub - DB - Publication - SUB - AgentID]
-FROM distribution.dbo.MSdistribution_agents mda
-LEFT JOIN distribution.dbo.MSdistribution_history mdh ON mdh.agent_id = mda.id
-JOIN
-    (SELECT s.agent_id, MaxAgentValue.[time], SUM(CASE WHEN xact_seqno > MaxAgentValue.maxseq THEN 1 ELSE 0 END) AS UndelivCmdsInDistDB
-    FROM distribution.dbo.MSrepl_commands t (NOLOCK)
-    JOIN distribution.dbo.MSsubscriptions AS s (NOLOCK) ON (t.article_id = s.article_id AND t.publisher_database_id=s.publisher_database_id )
-    JOIN
-        (SELECT hist.agent_id, MAX(hist.[time]) AS [time], h.maxseq
-        FROM distribution.dbo.MSdistribution_history hist (NOLOCK)
-        JOIN (SELECT agent_id,ISNULL(MAX(xact_seqno),0x0) AS maxseq
-        FROM distribution.dbo.MSdistribution_history (NOLOCK)
-        GROUP BY agent_id) AS h
-        ON (hist.agent_id=h.agent_id AND h.maxseq=hist.xact_seqno)
-        GROUP BY hist.agent_id, h.maxseq
-        ) AS MaxAgentValue
-    ON MaxAgentValue.agent_id = s.agent_id
-    GROUP BY s.agent_id, MaxAgentValue.[time]
-    ) und
-ON mda.id = und.agent_id AND und.[time] = mdh.[time]
-where mda.subscriber_db<>'virtual' -- created when your publication has the immediate_sync property set to true. This property dictates whether snapshot is available all the time for new subscriptions to be initialized. This affects the cleanup behavior of transactional replication. If this property is set to true, the transactions will be retained for max retention period instead of it getting cleaned up as soon as all the subscriptions got the change.
---and mdh.runstatus='6' --Fail
---and mdh.runstatus<>'2' --Succeed
-order by mdh.[time]
-`,
-    collect: function (rows, metrics) {
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            const mssql_db_replication_status = row[0].value;
-            const mssql_db_replication_subscriber_db = row[1].value;
-            const mssql_db_replication_publisher_name = row[2].value;
-            const mssql_db_replication_publisher_db = row[9].value;
-            const mssql_db_replication_last_synchronized_time = row[3].value;
-            debug("Fetch database replication information");
-            metrics.mssql_db_replication_status.set(mssql_db_replication_status);
-            metrics.mssql_db_replication_subscriber_db.set(mssql_db_replication_subscriber_db);
-            metrics.mssql_db_replication_publisher_name.set(mssql_db_replication_publisher_name);
-            metrics.mssql_db_replication_publisher_db.set(mssql_db_replication_publisher_db);
-            metrics.mssql_db_replication_last_synchronized_time.set(mssql_db_replication_last_synchronized_time);
-        }
-    }
-};
-*/
 
 const metrics = [
     mssql_instance_local_time,
     mssql_connections,
-    mssql_batch_requests,
+    mssql_connections_per_client,
     mssql_deadlocks,
     mssql_user_errors,
     mssql_kill_connection_errors,
     mssql_database_state,
-    mssql_database_filesize,
-    // mssql_database_replication,
     mssql_log_growths,
-    mssql_io_stall,
+    mssql_database_filesize,
     mssql_page_life_expectancy,
+    mssql_io_stall,
+    mssql_batch_requests,
+    mssql_transactions,
     mssql_os_process_memory,
     mssql_os_sys_memory
 ];
