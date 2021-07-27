@@ -24,7 +24,7 @@ const mssql_instance_local_time = {
 
 const mssql_connections = {
     metrics: {
-        mssql_connections: new client.Gauge({name: 'mssql_connections', help: 'Number of active connections', labelNames: ['database',]})
+        mssql_connections: new client.Gauge({name: 'mssql_connections', help: 'Number of active server connections', labelNames: ['database',]})
     },
     query: `SELECT db.name, COUNT(sP.spid)
 FROM sys.databases db INNER JOIN sys.sysprocesses sP ON sP.dbid = db.database_id
@@ -40,9 +40,9 @@ GROUP BY db.name`,
     }
 };
 
-const mssql_connections_per_client = {
+const mssql_client_connections = {
     metrics: {
-        mssql_connections_per_client: new client.Gauge({ name: 'mssql_connections_per_client', help: 'Number of active connections', labelNames: ['client',] })
+        mssql_client_connections: new client.Gauge({name: 'mssql_client_connections', help: 'Number of active client connections', labelNames: ['client',]})
     },
     query: `SELECT host_name, COUNT(*)
 FROM sys.dm_exec_sessions
@@ -53,8 +53,8 @@ GROUP BY host_name`,
             const row = rows[i];
             const client = row[0].value;
             const mssql_connections = row[1].value;
-            debug("Fetch number of connections for database", client, mssql_connections);
-            metrics.mssql_connections_per_client.set({client}, mssql_connections);
+            debug("Fetch number of connections for client", client, mssql_connections);
+            metrics.mssql_client_connections.set({client}, mssql_connections);
         }
     }
 };
@@ -220,7 +220,7 @@ FROM sys.dm_os_performance_counters where counter_name = 'Batch Requests/sec'`,
 
 const mssql_transactions = {
     metrics: {
-        mssql_transactions: new client.Gauge({ name: 'mssql_transactions', help: 'TPS.' })
+        mssql_transactions: new client.Gauge({name: 'mssql_transactions_count', help: 'TPS.'})
     },
     query: `SELECT TOP 1 cntr_value
 FROM sys.dm_os_performance_counters where counter_name = 'Transactions/sec'`,
@@ -276,7 +276,7 @@ from sys.dm_os_sys_memory`,
 const metrics = [
     mssql_instance_local_time,
     mssql_connections,
-    mssql_connections_per_client,
+    mssql_client_connections,
     mssql_deadlocks,
     mssql_user_errors,
     mssql_kill_connection_errors,
