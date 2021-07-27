@@ -42,19 +42,20 @@ GROUP BY db.name`,
 
 const mssql_client_connections = {
     metrics: {
-        mssql_client_connections: new client.Gauge({name: 'mssql_client_connections', help: 'Number of active client connections', labelNames: ['client',]})
+        mssql_client_connections: new client.Gauge({name: 'mssql_client_connections', help: 'Number of active client connections', labelNames: ['client', 'database']})
     },
-    query: `SELECT host_name, COUNT(*)
+    query: `SELECT host_name, DB_NAME(database_id), COUNT(*)
 FROM sys.dm_exec_sessions
 WHERE is_user_process=1
-GROUP BY host_name`,
+GROUP BY host_name, database_id`,
     collect: function (rows, metrics) {
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             const client = row[0].value;
-            const mssql_connections = row[1].value;
-            debug("Fetch number of connections for client", client, mssql_connections);
-            metrics.mssql_client_connections.set({client}, mssql_connections);
+            const database = row[1].value;
+            const mssql_connections = row[2].value;
+            debug("Fetch number of connections for client", client, database, mssql_connections);
+            metrics.mssql_client_connections.set({client, database}, mssql_connections);
         }
     }
 };
