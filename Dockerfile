@@ -1,5 +1,5 @@
 FROM node:14.17.3-alpine
-MAINTAINER Pierre Awaragi (pierre@awaragi.com)
+LABEL maintainer="Pierre Awaragi (pierre@awaragi.com)"
 
 # Create a directory where our app will be placed
 RUN mkdir -p /usr/src/app
