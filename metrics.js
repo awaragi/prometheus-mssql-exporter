@@ -24,25 +24,7 @@ const mssql_instance_local_time = {
 
 const mssql_connections = {
     metrics: {
-        mssql_connections: new client.Gauge({name: 'mssql_connections', help: 'Number of active server connections', labelNames: ['database',]})
-    },
-    query: `SELECT db.name, COUNT(sP.spid)
-FROM sys.databases db INNER JOIN sys.sysprocesses sP ON sP.dbid = db.database_id
-GROUP BY db.name`,
-    collect: function (rows, metrics) {
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            const database = row[0].value;
-            const mssql_connections = row[1].value;
-            debug("Fetch number of connections for database", database, mssql_connections);
-            metrics.mssql_connections.set({database}, mssql_connections);
-        }
-    }
-};
-
-const mssql_client_connections = {
-    metrics: {
-        mssql_client_connections: new client.Gauge({name: 'mssql_client_connections', help: 'Number of active client connections', labelNames: ['client', 'database']})
+        mssql_connections: new client.Gauge({name: 'mssql_connections', help: 'Number of active client connections', labelNames: ['client', 'database']})
     },
     query: `SELECT host_name, DB_NAME(database_id), COUNT(*)
 FROM sys.dm_exec_sessions
@@ -55,7 +37,7 @@ GROUP BY host_name, database_id`,
             const database = row[1].value;
             const mssql_connections = row[2].value;
             debug("Fetch number of connections for client", client, database, mssql_connections);
-            metrics.mssql_client_connections.set({client, database}, mssql_connections);
+            metrics.mssql_connections.set({client, database}, mssql_connections);
         }
     }
 };
@@ -155,17 +137,37 @@ const mssql_database_filesize = {
     }
 };
 
-const mssql_page_life_expectancy = {
+const mssql_buffer_manager = {
     metrics: {
+        mssql_page_read_total: new client.Gauge({name: 'mssql_page_read_total', help: 'Page reads/sec'}),
+        mssql_page_write_total: new client.Gauge({name: 'mssql_page_write_total', help: 'Page writes/sec'}),
         mssql_page_life_expectancy: new client.Gauge({name: 'mssql_page_life_expectancy', help: 'Indicates the minimum number of seconds a page will stay in the buffer pool on this node without references. The traditional advice from Microsoft used to be that the PLE should remain above 300 seconds'})
     },
-    query: `SELECT TOP 1  cntr_value
-FROM sys.dm_os_performance_counters with (nolock)
-WHERE counter_name = 'Page life expectancy'`,
+    query: `
+        SELECT * FROM 
+        (
+            SELECT rtrim(counter_name) as counter_name, cntr_value
+            FROM sys.dm_os_performance_counters
+            WHERE counter_name in ('Page reads/sec', 'Page writes/sec', 'Page life expectancy')
+            AND object_name = 'SQLServer:Buffer Manager'
+        ) d
+        PIVOT
+        (
+        MAX(cntr_value)
+        FOR counter_name IN ([Page reads/sec], [Page writes/sec], [Page life expectancy])
+        ) piv
+    `,
     collect: function (rows, metrics) {
-        const mssql_page_life_expectancy = rows[0][0].value;
-        debug("Fetch page life expectancy", mssql_page_life_expectancy);
-        metrics.mssql_page_life_expectancy.set(mssql_page_life_expectancy)
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const page_read = row[0].value;
+            const page_write = row[1].value;
+            const page_life_expectancy = row[2].value;
+            debug("Fetch the disk io", page_read, page_write, page_life_expectancy);
+            metrics.mssql_page_read_total.set(page_read);
+            metrics.mssql_page_write_total.set(page_write);
+            metrics.mssql_page_life_expectancy.set(page_life_expectancy);
+        }
     }
 };
 
@@ -281,14 +283,13 @@ FROM sys.dm_os_sys_memory`,
 const metrics = [
     mssql_instance_local_time,
     mssql_connections,
-    mssql_client_connections,
     mssql_deadlocks,
     mssql_user_errors,
     mssql_kill_connection_errors,
     mssql_database_state,
     mssql_log_growths,
     mssql_database_filesize,
-    mssql_page_life_expectancy,
+    mssql_buffer_manager,
     mssql_io_stall,
     mssql_batch_requests,
     mssql_transactions,
