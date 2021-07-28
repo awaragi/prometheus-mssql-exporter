@@ -66,7 +66,7 @@ const mssql_deadlocks = {
     },
     query: `SELECT cntr_value
 FROM sys.dm_os_performance_counters
-where counter_name = 'Number of Deadlocks/sec' AND instance_name = '_Total'`,
+WHERE counter_name = 'Number of Deadlocks/sec' AND instance_name = '_Total'`,
     collect: function (rows, metrics) {
         const mssql_deadlocks = rows[0][0].value;
         debug("Fetch number of deadlocks/sec", mssql_deadlocks);
@@ -80,7 +80,7 @@ const mssql_user_errors = {
     },
     query: `SELECT cntr_value
 FROM sys.dm_os_performance_counters
-where counter_name = 'Errors/sec' AND instance_name = 'User Errors'`,
+WHERE counter_name = 'Errors/sec' AND instance_name = 'User Errors'`,
     collect: function (rows, metrics) {
         const mssql_user_errors = rows[0][0].value;
         debug("Fetch number of user errors/sec", mssql_user_errors);
@@ -94,7 +94,7 @@ const mssql_kill_connection_errors = {
     },
     query: `SELECT cntr_value
 FROM sys.dm_os_performance_counters
-where counter_name = 'Errors/sec' AND instance_name = 'Kill Connection Errors'`,
+WHERE counter_name = 'Errors/sec' AND instance_name = 'Kill Connection Errors'`,
     collect: function (rows, metrics) {
         const mssql_kill_connection_errors = rows[0][0].value;
         debug("Fetch number of kill connection errors/sec", mssql_kill_connection_errors);
@@ -123,8 +123,8 @@ const mssql_log_growths = {
         mssql_log_growths: new client.Gauge({name: 'mssql_log_growths', help: 'Total number of times the transaction log for the database has been expanded last restart', labelNames: ['database']}),
     },
     query: `SELECT rtrim(instance_name),cntr_value
-FROM sys.dm_os_performance_counters where counter_name = 'Log Growths'
-and  instance_name <> '_Total'`,
+FROM sys.dm_os_performance_counters
+WHERE counter_name = 'Log Growths' AND instance_name <> '_Total'`,
     collect: function (rows, metrics) {
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
@@ -160,7 +160,8 @@ const mssql_page_life_expectancy = {
         mssql_page_life_expectancy: new client.Gauge({name: 'mssql_page_life_expectancy', help: 'Indicates the minimum number of seconds a page will stay in the buffer pool on this node without references. The traditional advice from Microsoft used to be that the PLE should remain above 300 seconds'})
     },
     query: `SELECT TOP 1  cntr_value
-FROM sys.dm_os_performance_counters with (nolock)where counter_name='Page life expectancy'`,
+FROM sys.dm_os_performance_counters with (nolock)
+WHERE counter_name = 'Page life expectancy'`,
     collect: function (rows, metrics) {
         const mssql_page_life_expectancy = rows[0][0].value;
         debug("Fetch page life expectancy", mssql_page_life_expectancy);
@@ -183,7 +184,7 @@ cast(DB_Name(a.database_id) as varchar) as name,
 FROM
 sys.dm_io_virtual_file_stats(null, null) a
 INNER JOIN sys.master_files b ON a.database_id = b.database_id and a.file_id = b.file_id
-group by a.database_id`,
+GROUP BY a.database_id`,
     collect: function (rows, metrics) {
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
@@ -208,7 +209,8 @@ const mssql_batch_requests = {
         mssql_batch_requests: new client.Gauge({name: 'mssql_batch_requests', help: 'Number of Transact-SQL command batches received per second. This statistic is affected by all constraints (such as I/O, number of users, cachesize, complexity of requests, and so on). High batch requests mean good throughput'})
     },
     query: `SELECT TOP 1 cntr_value
-FROM sys.dm_os_performance_counters where counter_name = 'Batch Requests/sec'`,
+FROM sys.dm_os_performance_counters 
+WHERE counter_name = 'Batch Requests/sec'`,
     collect: function (rows, metrics) {
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
@@ -221,16 +223,18 @@ FROM sys.dm_os_performance_counters where counter_name = 'Batch Requests/sec'`,
 
 const mssql_transactions = {
     metrics: {
-        mssql_transactions: new client.Gauge({name: 'mssql_transactions_count', help: 'TPS.'})
+        mssql_transactions: new client.Gauge({name: 'mssql_transactions_total', help: 'TPS.', labelNames: ['database']})
     },
-    query: `SELECT TOP 1 cntr_value
-FROM sys.dm_os_performance_counters where counter_name = 'Transactions/sec'`,
+    query: `SELECT rtrim(instance_name), cntr_value
+FROM sys.dm_os_performance_counters
+WHERE counter_name = 'Transactions/sec' AND instance_name <> '_Total'`,
     collect: function (rows, metrics) {
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
-            const mssql_transactions = row[0].value;
-            debug("Fetch number of transactions per second", mssql_transactions);
-            metrics.mssql_transactions.set(mssql_transactions);
+            const database = row[0].value;
+            const transactions = row[1].value;
+            debug("Fetch number of transactions per second", database, transactions);
+            metrics.mssql_transactions.set({database}, transactions);
         }
     }
 };
@@ -241,7 +245,7 @@ const mssql_os_process_memory = {
         mssql_memory_utilization_percentage: new client.Gauge({name: 'mssql_memory_utilization_percentage', help: 'Percentage of memory utilization'}),
     },
     query: `SELECT page_fault_count, memory_utilization_percentage 
-from sys.dm_os_process_memory`,
+FROM sys.dm_os_process_memory`,
     collect: function (rows, metrics) {
         const page_fault_count = rows[0][0].value;
         const memory_utilization_percentage = rows[0][1].value;
@@ -259,7 +263,7 @@ const mssql_os_sys_memory = {
         mssql_available_page_file_kb: new client.Gauge({name: 'mssql_available_page_file_kb', help: 'Available page file in KB'}),
     },
     query: `SELECT total_physical_memory_kb, available_physical_memory_kb, total_page_file_kb, available_page_file_kb 
-from sys.dm_os_sys_memory`,
+FROM sys.dm_os_sys_memory`,
     collect: function (rows, metrics) {
         const mssql_total_physical_memory_kb = rows[0][0].value;
         const mssql_available_physical_memory_kb = rows[0][1].value;
