@@ -141,20 +141,22 @@ const mssql_buffer_manager = {
     metrics: {
         mssql_page_read_total: new client.Gauge({name: 'mssql_page_read_total', help: 'Page reads/sec'}),
         mssql_page_write_total: new client.Gauge({name: 'mssql_page_write_total', help: 'Page writes/sec'}),
-        mssql_page_life_expectancy: new client.Gauge({name: 'mssql_page_life_expectancy', help: 'Indicates the minimum number of seconds a page will stay in the buffer pool on this node without references. The traditional advice from Microsoft used to be that the PLE should remain above 300 seconds'})
+        mssql_page_life_expectancy: new client.Gauge({name: 'mssql_page_life_expectancy', help: 'Indicates the minimum number of seconds a page will stay in the buffer pool on this node without references. The traditional advice from Microsoft used to be that the PLE should remain above 300 seconds'}),
+        mssql_lazy_write_total: new client.Gauge({name: 'mssql_lazy_write_total', help: 'Lazy writes/sec'}),
+        mssql_page_checkpoint_total: new client.Gauge({name: 'mssql_page_checkpoint_total', help: 'Checkpoint pages/sec'}),
     },
     query: `
         SELECT * FROM 
         (
             SELECT rtrim(counter_name) as counter_name, cntr_value
             FROM sys.dm_os_performance_counters
-            WHERE counter_name in ('Page reads/sec', 'Page writes/sec', 'Page life expectancy')
+            WHERE counter_name in ('Page reads/sec', 'Page writes/sec', 'Page life expectancy', 'Lazy writes/sec', 'Checkpoint pages/sec')
             AND object_name = 'SQLServer:Buffer Manager'
         ) d
         PIVOT
         (
         MAX(cntr_value)
-        FOR counter_name IN ([Page reads/sec], [Page writes/sec], [Page life expectancy])
+        FOR counter_name IN ([Page reads/sec], [Page writes/sec], [Page life expectancy], [Lazy writes/sec], [Checkpoint pages/sec])
         ) piv
     `,
     collect: function (rows, metrics) {
@@ -163,10 +165,14 @@ const mssql_buffer_manager = {
             const page_read = row[0].value;
             const page_write = row[1].value;
             const page_life_expectancy = row[2].value;
+            const lazy_write_total = row[3].value;
+            const page_checkpoint_total = row[4].value;
             debug("Fetch the disk io", page_read, page_write, page_life_expectancy);
             metrics.mssql_page_read_total.set(page_read);
             metrics.mssql_page_write_total.set(page_write);
             metrics.mssql_page_life_expectancy.set(page_life_expectancy);
+            metrics.mssql_page_checkpoint_total.set(page_checkpoint_total);
+            metrics.mssql_lazy_write_total.set(lazy_write_total);
         }
     }
 };
