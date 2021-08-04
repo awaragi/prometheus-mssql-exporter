@@ -30,7 +30,7 @@
     "debug": "^2.6.8",
     "express": "4.15.2",
     "prom-client": "9.1.1",
-    "tedious": "2.0.0"
+    "tedious": "^11.4.0"
   },
   "devDependencies": {
     "nodemon": "^1.11.0"
