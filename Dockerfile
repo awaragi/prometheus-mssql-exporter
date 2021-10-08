@@ -1,4 +1,4 @@
-FROM node:8.4.0-alpine
+FROM node:16.10.0-alpine
 MAINTAINER Pierre Awaragi (pierre@awaragi.com)
 
 # Create a directory where our app will be placed
@@ -15,6 +15,10 @@ RUN npm install --production
 
 # Expose the port the app runs in
 EXPOSE 4000
+
+RUN apk add shadow && useradd --no-log-init -r user
+
+USER user
 
 # Serve the app
 CMD ["node", "index.js"]
