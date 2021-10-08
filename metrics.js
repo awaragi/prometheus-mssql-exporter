@@ -51,7 +51,7 @@ where counter_name = 'Number of Deadlocks/sec' AND instance_name = '_Total'`,
     collect: function (rows, metrics) {
         const mssql_deadlocks = rows[0][0].value;
         debug("Fetch number of deadlocks/sec", mssql_deadlocks);
-        metrics.mssql_deadlocks_per_second.set(mssql_deadlocks)
+        metrics.mssql_deadlocks_per_second.set(parseInt(mssql_deadlocks))
     }
 };
 
@@ -65,7 +65,7 @@ where counter_name = 'Errors/sec' AND instance_name = 'User Errors'`,
     collect: function (rows, metrics) {
         const mssql_user_errors = rows[0][0].value;
         debug("Fetch number of user errors/sec", mssql_user_errors);
-        metrics.mssql_user_errors.set(mssql_user_errors)
+        metrics.mssql_user_errors.set(parseInt(mssql_user_errors))
     }
 };
 
@@ -79,7 +79,7 @@ where counter_name = 'Errors/sec' AND instance_name = 'Kill Connection Errors'`,
     collect: function (rows, metrics) {
         const mssql_kill_connection_errors = rows[0][0].value;
         debug("Fetch number of kill connection errors/sec", mssql_kill_connection_errors);
-        metrics.mssql_kill_connection_errors.set(mssql_kill_connection_errors)
+        metrics.mssql_kill_connection_errors.set(parseInt(mssql_kill_connection_errors))
     }
 };
 
@@ -112,7 +112,7 @@ and  instance_name <> '_Total'`,
             const database = row[0].value;
             const mssql_log_growths = row[1].value;
             debug("Fetch number log growths for database", database);
-            metrics.mssql_log_growths.set({database: database}, mssql_log_growths);
+            metrics.mssql_log_growths.set({database: database}, parseInt(mssql_log_growths));
         }
     }
 };
@@ -145,7 +145,7 @@ FROM sys.dm_os_performance_counters with (nolock)where counter_name='Page life e
     collect: function (rows, metrics) {
         const mssql_page_life_expectancy = rows[0][0].value;
         debug("Fetch page life expectancy", mssql_page_life_expectancy);
-        metrics.mssql_page_life_expectancy.set(mssql_page_life_expectancy)
+        metrics.mssql_page_life_expectancy.set(parseInt(mssql_page_life_expectancy))
     }
 };
 
@@ -175,11 +175,11 @@ group by a.database_id`,
             const queued_read = row[4].value;
             const queued_write = row[5].value;
             debug("Fetch number of stalls for database", database);
-            metrics.mssql_io_stall_total.set({database: database}, stall);
-            metrics.mssql_io_stall.set({database: database, type: "read"}, read);
-            metrics.mssql_io_stall.set({database: database, type: "write"}, write);
-            metrics.mssql_io_stall.set({database: database, type: "queued_read"}, queued_read);
-            metrics.mssql_io_stall.set({database: database, type: "queued_write"}, queued_write);
+            metrics.mssql_io_stall_total.set({database: database}, parseInt(stall));
+            metrics.mssql_io_stall.set({database: database, type: "read"}, parseInt(read));
+            metrics.mssql_io_stall.set({database: database, type: "write"}, parseInt(write));
+            metrics.mssql_io_stall.set({database: database, type: "queued_read"}, parseInt(queued_read));
+            metrics.mssql_io_stall.set({database: database, type: "queued_write"}, parseInt(queued_write));
         }
     }
 };
@@ -195,7 +195,7 @@ FROM sys.dm_os_performance_counters where counter_name = 'Batch Requests/sec'`,
             const row = rows[i];
             const mssql_batch_requests = row[0].value;
             debug("Fetch number of batch requests per second", mssql_batch_requests);
-            metrics.mssql_batch_requests.set(mssql_batch_requests);
+            metrics.mssql_batch_requests.set(parseInt(mssql_batch_requests));
         }
     }
 };
@@ -211,7 +211,7 @@ from sys.dm_os_process_memory`,
         const page_fault_count = rows[0][0].value;
         const memory_utilization_percentage = rows[0][1].value;
         debug("Fetch page fault count", page_fault_count);
-        metrics.mssql_page_fault_count.set(page_fault_count);
+        metrics.mssql_page_fault_count.set(parseInt(page_fault_count));
         metrics.mssql_memory_utilization_percentage.set(memory_utilization_percentage);
     }
 };
@@ -231,10 +231,10 @@ from sys.dm_os_sys_memory`,
         const mssql_total_page_file_kb = rows[0][2].value;
         const mssql_available_page_file_kb = rows[0][3].value;
         debug("Fetch system memory information");
-        metrics.mssql_total_physical_memory_kb.set(mssql_total_physical_memory_kb);
-        metrics.mssql_available_physical_memory_kb.set(mssql_available_physical_memory_kb);
-        metrics.mssql_total_page_file_kb.set(mssql_total_page_file_kb);
-        metrics.mssql_available_page_file_kb.set(mssql_available_page_file_kb);
+        metrics.mssql_total_physical_memory_kb.set(parseInt(mssql_total_physical_memory_kb));
+        metrics.mssql_available_physical_memory_kb.set(parseInt(mssql_available_physical_memory_kb));
+        metrics.mssql_total_page_file_kb.set(parseInt(mssql_total_page_file_kb));
+        metrics.mssql_available_page_file_kb.set(parseInt(mssql_available_page_file_kb));
     }
 };
 
