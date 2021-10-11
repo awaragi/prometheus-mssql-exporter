@@ -121,7 +121,7 @@ app.get('/metrics', async (req, res) => {
         // error connecting
         up.set(0);
         res.header("X-Error", error.message || error);
-        res.send(client.register.getSingleMetricAsString(up.name));
+        res.send(await client.register.getSingleMetricAsString(up.name));
     }
 });
 
