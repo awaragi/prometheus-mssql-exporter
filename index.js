@@ -10,7 +10,7 @@ const metrics = require('./metrics').metrics;
 const userName = process.env["USERNAME"];
 const password = process.env["PASSWORD"];
 const serverName = process.env["SERVER"];
-const portNumber = process.env["PORT"] || 1433;
+const portNumber = parseInt(process.env["PORT"]) || 1433;
 
 let config = {
     connect: {
@@ -28,7 +28,7 @@ let config = {
             rowCollectionOnRequestCompletion: true
         }
     },
-    port: process.env["EXPOSE"] || 4000
+    port: parseInt(process.env["EXPOSE"]) || 4000
 };
 
 if (!serverName) {
