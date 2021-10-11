@@ -10,7 +10,7 @@ const metrics = require('./metrics').metrics;
 const userName = process.env["USERNAME"];
 const password = process.env["PASSWORD"];
 const serverName = process.env["SERVER"];
-const portNumber = process.env["PORT"] || 1433;
+const portNumber = parseInt(process.env["PORT"]) || 1433;
 
 let config = {
     connect: {
@@ -28,7 +28,7 @@ let config = {
             rowCollectionOnRequestCompletion: true
         }
     },
-    port: process.env["EXPOSE"] || 4000
+    port: parseInt(process.env["EXPOSE"]) || 4000
 };
 
 if (!serverName) {
@@ -109,6 +109,10 @@ async function collect(connection) {
     }
 }
 
+app.get('/healthcheck', (req, res) => {
+    res.send("OK");
+})
+
 app.get('/metrics', async (req, res) => {
     res.contentType(client.register.contentType);
 
@@ -121,7 +125,7 @@ app.get('/metrics', async (req, res) => {
         // error connecting
         up.set(0);
         res.header("X-Error", error.message || error);
-        res.send(client.register.getSingleMetricAsString(up.name));
+        res.send(await client.register.getSingleMetricAsString(up.name));
     }
 });
 
