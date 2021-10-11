@@ -7,13 +7,23 @@ const client = require('./metrics').client;
 const up = require('./metrics').up;
 const metrics = require('./metrics').metrics;
 
+const userName = process.env["USERNAME"];
+const password = process.env["PASSWORD"];
+const serverName = process.env["SERVER"];
+const portNumber = process.env["PORT"] || 1433;
+
 let config = {
     connect: {
-        server: process.env["SERVER"],
-        userName: process.env["USERNAME"],
-        password: process.env["PASSWORD"],
+        authentication: {
+            type: 'default',
+            options: {
+                userName: userName,
+                password: password,
+            }
+        },
+        server: serverName,
         options: {
-            port: process.env["PORT"] || 1433,
+            port: portNumber,
             encrypt: true,
             rowCollectionOnRequestCompletion: true
         }
@@ -21,13 +31,13 @@ let config = {
     port: process.env["EXPOSE"] || 4000
 };
 
-if (!config.connect.server) {
+if (!serverName) {
     throw new Error("Missing SERVER information")
 }
-if (!config.connect.userName) {
+if (!userName) {
     throw new Error("Missing USERNAME information")
 }
-if (!config.connect.password) {
+if (!password) {
     throw new Error("Missing PASSWORD information")
 }
 
@@ -38,20 +48,26 @@ if (!config.connect.password) {
  */
 async function connect() {
     return new Promise((resolve, reject) => {
-        debug("Connecting to database", config.connect.server);
-        let connection = new Connection(config.connect);
-        connection.on('connect', (error) => {
-            if (error) {
-                console.error("Failed to connect to database:", error.message || error);
-                reject(error);
-            } else {
-                debug("Connected to database");
-                resolve(connection);
-            }
-        });
-        connection.on('end', () => {
-            debug("Connection to database ended");
-        });
+        try {
+            debug("Connecting to database", serverName);
+            let connection = new Connection(config.connect);
+            connection.on('connect', (error) => {
+                if (error) {
+                    console.error("Failed to connect to database:", error.message || error);
+                    reject(error);
+                } else {
+                    debug("Connected to database");
+                    resolve(connection);
+                }
+            });
+            connection.on('end', () => {
+                debug("Connection to database ended");
+            });
+            connection.connect();
+        } catch (e) {
+            debug("Exception caught", e);
+            throw e;
+        }
     });
 
 }
@@ -100,7 +116,7 @@ app.get('/metrics', async (req, res) => {
         let connection = await connect();
         await collect(connection, metrics);
         connection.close();
-        res.send(client.register.metrics());
+        res.send(await client.register.metrics());
     } catch (error) {
         // error connecting
         up.set(0);
@@ -110,7 +126,7 @@ app.get('/metrics', async (req, res) => {
 });
 
 const server = app.listen(config.port, function () {
-    debug(`Prometheus-MSSQL Exporter listening on local port ${config.port} monitoring ${config.connect.userName}@${config.connect.server}:${config.connect.options.port}`);
+    debug(`Prometheus-MSSQL Exporter listening on local port ${config.port} monitoring ${userName}@${serverName}:${portNumber}`);
 });
 
 process.on('SIGINT', function () {
