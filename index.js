@@ -109,6 +109,10 @@ async function collect(connection) {
     }
 }
 
+app.get('/healthcheck', (req, res) => {
+    res.send("OK");
+})
+
 app.get('/metrics', async (req, res) => {
     res.contentType(client.register.contentType);
 
