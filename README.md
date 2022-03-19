@@ -47,30 +47,51 @@ Development
 
 ### Launch a mock mssql server
 
-`
+```shell
 docker run --rm -e ACCEPT_EULA=Y -e SA_PASSWORD=qkD4x3yy -p 1433:1433 --name mssql mcr.microsoft.com/mssql/server:2019-latest
-`
+```
 
 To use a persistent storage include `-v /mypath:/var/opt/mssql/data`
 
+### List all available metrics
+```shell
+node metrics.js
+```
+
 ### Environment variables
+
 - SERVER: sqlserver
 - PORT: sql server port (defaults to 1433)
-- USERNAME: sql server user (should have admin or permissions to perform system info queries)
+- USERNAME: sql server user (should have admin or user with required permissions)
 - PASSWORD: sql user password
 - EXPOSE: webserver port (defaults to 4000)
 - DEBUG: verbose logging
   - app for application logging
-  - metrics for metrics and query logging
+  - metrics for metrics executions logging
+  - db for database connection and queries logging
 
 ### Launch via command line
 
 To execute and the application using locally running mssql (see above for how to launch a docker instance of mssql), 
-use the following command
+use the following command which will generate all very detailed logs
 
-`
+```shell
+DEBUG=app,metrics,db SERVER=localhost USERNAME=SA PASSWORD=qkD4x3yy node ./index.js
+```
+
+A less verbose execution 
+
+```shell
 DEBUG=app,metrics SERVER=localhost USERNAME=SA PASSWORD=qkD4x3yy node ./index.js
-`
+```
+
+### Test results
+
+Use curl or wget to fetch the metrics from launched web application.
+
+```shell
+curl http://localhost:4000/metrics
+```
 
 ### building and pushing image to dockerhub
 

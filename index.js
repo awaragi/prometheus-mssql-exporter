@@ -1,4 +1,5 @@
-const debug = require("debug")("app");
+const appLog = require("debug")("app");
+const dbLog = require("debug")("db");
 const Connection = require('tedious').Connection;
 const Request = require('tedious').Request;
 const app = require('express')();
@@ -38,19 +39,19 @@ if (!config.connect.password) {
  */
 async function connect() {
     return new Promise((resolve, reject) => {
-        debug("Connecting to database", config.connect.server);
+        dbLog("Connecting to database", config.connect.server);
         let connection = new Connection(config.connect);
         connection.on('connect', (error) => {
             if (error) {
                 console.error("Failed to connect to database:", error.message || error);
                 reject(error);
             } else {
-                debug("Connected to database");
+                dbLog("Connected to database");
                 resolve(connection);
             }
         });
         connection.on('end', () => {
-            debug("Connection to database ended");
+            dbLog("Connection to database ended");
         });
     });
 
@@ -66,8 +67,10 @@ async function connect() {
  */
 async function measure(connection, collector) {
     return new Promise((resolve) => {
+        dbLog(`Executing query: ${collector.query}`);
         let request = new Request(collector.query, (error, rowCount, rows) => {
             if (!error) {
+                dbLog(`Retrieved rows ${JSON.stringify(rows, null, 2)}`);
                 collector.collect(rows, collector.metrics);
                 resolve();
             } else {
@@ -97,12 +100,15 @@ app.get('/metrics', async (req, res) => {
     res.contentType(client.register.contentType);
 
     try {
+        appLog("Received metrics request");
         let connection = await connect();
         await collect(connection, metrics);
         connection.close();
         res.send(client.register.metrics());
+        appLog("Successfully processed metrics request");
     } catch (error) {
         // error connecting
+        appLog("Error handling metrics request");
         up.set(0);
         res.header("X-Error", error.message || error);
         res.send(client.register.getSingleMetricAsString(up.name));
@@ -110,7 +116,7 @@ app.get('/metrics', async (req, res) => {
 });
 
 const server = app.listen(config.port, function () {
-    debug(`Prometheus-MSSQL Exporter listening on local port ${config.port} monitoring ${config.connect.userName}@${config.connect.server}:${config.connect.options.port}`);
+    appLog(`Prometheus-MSSQL Exporter listening on local port ${config.port} monitoring ${config.connect.userName}@${config.connect.server}:${config.connect.options.port}`);
 });
 
 process.on('SIGINT', function () {
