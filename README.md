@@ -24,6 +24,8 @@ Prometheus exporter for Microsoft SQL Server (MSSQL). Exposes the following metr
 
 Please feel free to submit other interesting metrics to include.
 
+> This exporter has been tested against MSSQL 2017 and 2019 docker images (only ones offered by Microsoft). Other versions might be work but have not been tested. 
+
 Usage
 -----
 
@@ -48,6 +50,14 @@ Development
 ### Launch a mock mssql server
 
 ```shell
+npm run test:mssql:2019
+# or
+npm run test:mssql:2017
+```
+
+which will launch a docker instance equivalent to
+
+```shell
 docker run --rm -e ACCEPT_EULA=Y -e SA_PASSWORD=qkD4x3yy -p 1433:1433 --name mssql mcr.microsoft.com/mssql/server:2019-latest
 ```
 
@@ -68,7 +78,8 @@ node metrics.js
 - DEBUG: verbose logging
   - app for application logging
   - metrics for metrics executions logging
-  - db for database connection and queries logging
+  - db for database connection logging
+  - queries for database queries and results logging
 
 ### Launch via command line
 
@@ -76,21 +87,32 @@ To execute and the application using locally running mssql (see above for how to
 use the following command which will generate all very detailed logs
 
 ```shell
-DEBUG=app,metrics,db SERVER=localhost USERNAME=SA PASSWORD=qkD4x3yy node ./index.js
+DEBUG=app,metrics,db,queries SERVER=localhost USERNAME=SA PASSWORD=qkD4x3yy node ./index.js
 ```
 
 A less verbose execution 
 
 ```shell
-DEBUG=app,metrics SERVER=localhost USERNAME=SA PASSWORD=qkD4x3yy node ./index.js
+DEBUG=app,metrics,db SERVER=localhost USERNAME=SA PASSWORD=qkD4x3yy node ./index.js
 ```
 
-### Test results
+### Testing
 
 Use curl or wget to fetch the metrics from launched web application.
 
 ```shell
 curl http://localhost:4000/metrics
+```
+
+E2E test is available to execute against MSSQL 2017 or 2019 docker instances. 
+Any added metrics must get added to the e2e tests.
+
+### Metric listing
+
+Call metrics.js file directly to generate documentation of available metrics and to update this README file.
+
+```shell
+node metrics.js
 ```
 
 ### building and pushing image to dockerhub

@@ -17,7 +17,7 @@ const mssql_instance_local_time = {
     query: `SELECT DATEDIFF(second, '19700101', GETUTCDATE())`,
     collect: function (rows, metrics) {
         const mssql_instance_local_time = rows[0][0].value;
-        metricsLog("Fetch current time", mssql_instance_local_time);
+        metricsLog("Fetched current time", mssql_instance_local_time);
         metrics.mssql_instance_local_time.set(mssql_instance_local_time);
     }
 };
@@ -35,7 +35,7 @@ GROUP BY DB_NAME(sP.dbid)`,
             const row = rows[i];
             const database = row[0].value;
             const mssql_connections = row[1].value;
-            metricsLog("Fetch number of connections for database", database, mssql_connections);
+            metricsLog("Fetched number of connections for database", database, mssql_connections);
             metrics.mssql_connections.set({database: database, state: 'current'}, mssql_connections);
         }
     }
@@ -50,7 +50,7 @@ FROM sys.dm_os_performance_counters
 where counter_name = 'Number of Deadlocks/sec' AND instance_name = '_Total'`,
     collect: function (rows, metrics) {
         const mssql_deadlocks = rows[0][0].value;
-        metricsLog("Fetch number of deadlocks/sec", mssql_deadlocks);
+        metricsLog("Fetched number of deadlocks/sec", mssql_deadlocks);
         metrics.mssql_deadlocks_per_second.set(mssql_deadlocks)
     }
 };
@@ -64,7 +64,7 @@ FROM sys.dm_os_performance_counters
 where counter_name = 'Errors/sec' AND instance_name = 'User Errors'`,
     collect: function (rows, metrics) {
         const mssql_user_errors = rows[0][0].value;
-        metricsLog("Fetch number of user errors/sec", mssql_user_errors);
+        metricsLog("Fetched number of user errors/sec", mssql_user_errors);
         metrics.mssql_user_errors.set(mssql_user_errors)
     }
 };
@@ -78,7 +78,7 @@ FROM sys.dm_os_performance_counters
 where counter_name = 'Errors/sec' AND instance_name = 'Kill Connection Errors'`,
     collect: function (rows, metrics) {
         const mssql_kill_connection_errors = rows[0][0].value;
-        metricsLog("Fetch number of kill connection errors/sec", mssql_kill_connection_errors);
+        metricsLog("Fetched number of kill connection errors/sec", mssql_kill_connection_errors);
         metrics.mssql_kill_connection_errors.set(mssql_kill_connection_errors)
     }
 };
@@ -93,7 +93,7 @@ const mssql_database_state = {
             const row = rows[i];
             const database = row[0].value;
             const mssql_database_state = row[1].value;
-            metricsLog("Fetch state for database", database);
+            metricsLog("Fetched state for database", database);
             metrics.mssql_database_state.set({database: database}, mssql_database_state);
         }
     }
@@ -111,7 +111,7 @@ and  instance_name <> '_Total'`,
             const row = rows[i];
             const database = row[0].value;
             const mssql_log_growths = row[1].value;
-            metricsLog("Fetch number log growths for database", database);
+            metricsLog("Fetched number log growths for database", database);
             metrics.mssql_log_growths.set({database: database}, mssql_log_growths);
         }
     }
@@ -130,7 +130,7 @@ const mssql_database_filesize = {
 			const type = row[2].value
 			const filename = row[3].value
 			const mssql_database_filesize = row[4].value;
-            metricsLog("Fetch size of files for database ", database);
+            metricsLog("Fetched size of files for database ", database);
             metrics.mssql_database_filesize.set({database: database, logicalname: logicalname, type: type, filename: filename}, mssql_database_filesize);
         }
     }
@@ -144,7 +144,7 @@ const mssql_page_life_expectancy = {
 FROM sys.dm_os_performance_counters with (nolock)where counter_name='Page life expectancy'`,
     collect: function (rows, metrics) {
         const mssql_page_life_expectancy = rows[0][0].value;
-        metricsLog("Fetch page life expectancy", mssql_page_life_expectancy);
+        metricsLog("Fetched page life expectancy", mssql_page_life_expectancy);
         metrics.mssql_page_life_expectancy.set(mssql_page_life_expectancy)
     }
 };
@@ -174,7 +174,7 @@ group by a.database_id`,
             const stall = row[3].value;
             const queued_read = row[4].value;
             const queued_write = row[5].value;
-            metricsLog("Fetch number of stalls for database", database);
+            metricsLog("Fetched number of stalls for database", database);
             metrics.mssql_io_stall_total.set({database: database}, stall);
             metrics.mssql_io_stall.set({database: database, type: "read"}, read);
             metrics.mssql_io_stall.set({database: database, type: "write"}, write);
@@ -194,7 +194,7 @@ FROM sys.dm_os_performance_counters where counter_name = 'Batch Requests/sec'`,
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             const mssql_batch_requests = row[0].value;
-            metricsLog("Fetch number of batch requests per second", mssql_batch_requests);
+            metricsLog("Fetched number of batch requests per second", mssql_batch_requests);
             metrics.mssql_batch_requests.set(mssql_batch_requests);
         }
     }
@@ -210,7 +210,7 @@ from sys.dm_os_process_memory`,
     collect: function (rows, metrics) {
         const page_fault_count = rows[0][0].value;
         const memory_utilization_percentage = rows[0][1].value;
-        metricsLog("Fetch page fault count", page_fault_count);
+        metricsLog("Fetched page fault count", page_fault_count);
         metrics.mssql_page_fault_count.set(page_fault_count);
         metrics.mssql_memory_utilization_percentage.set(memory_utilization_percentage);
     }
@@ -230,7 +230,11 @@ from sys.dm_os_sys_memory`,
         const mssql_available_physical_memory_kb = rows[0][1].value;
         const mssql_total_page_file_kb = rows[0][2].value;
         const mssql_available_page_file_kb = rows[0][3].value;
-        metricsLog("Fetch system memory information", mssql_total_physical_memory_kb, mssql_available_physical_memory_kb, mssql_total_page_file_kb, mssql_available_page_file_kb);
+        metricsLog("Fetched system memory information", 
+            "Total physical memory", mssql_total_physical_memory_kb, 
+            "Available physical memory", mssql_available_physical_memory_kb, 
+            "Total page file", mssql_total_page_file_kb, 
+            "Available page file", mssql_available_page_file_kb);
         metrics.mssql_total_physical_memory_kb.set(mssql_total_physical_memory_kb);
         metrics.mssql_available_physical_memory_kb.set(mssql_available_physical_memory_kb);
         metrics.mssql_total_page_file_kb.set(mssql_total_page_file_kb);

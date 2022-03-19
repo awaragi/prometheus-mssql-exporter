@@ -1,5 +1,7 @@
 const appLog = require("debug")("app");
 const dbLog = require("debug")("db");
+const queriesLog = require("debug")("queries");
+
 const Connection = require('tedious').Connection;
 const Request = require('tedious').Request;
 const app = require('express')();
@@ -67,10 +69,10 @@ async function connect() {
  */
 async function measure(connection, collector) {
     return new Promise((resolve) => {
-        dbLog(`Executing query: ${collector.query}`);
+        queriesLog(`Executing query: ${collector.query}`);
         let request = new Request(collector.query, (error, rowCount, rows) => {
             if (!error) {
-                dbLog(`Retrieved rows ${JSON.stringify(rows, null, 2)}`);
+                queriesLog(`Retrieved rows ${JSON.stringify(rows, null, 2)}`);
                 collector.collect(rows, collector.metrics);
                 resolve();
             } else {
