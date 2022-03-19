@@ -45,28 +45,33 @@ It is **_required_** that the specified user has the following permissions
 Development
 -----------
 
+### Launch a mock mssql server
+
+`
+docker run --rm -e ACCEPT_EULA=Y -e SA_PASSWORD=qkD4x3yy -p 1433:1433 --name mssql mcr.microsoft.com/mssql/server:2019-latest
+`
+
+To use a persistent storage include `-v /mypath:/var/opt/mssql/data`
+
+### Environment variables
+- SERVER: sqlserver
+- PORT: sql server port (defaults to 1433)
+- USERNAME: sql server user (should have admin or permissions to perform system info queries)
+- PASSWORD: sql user password
+- EXPOSE: webserver port (defaults to 4000)
+- DEBUG: verbose logging
+  - app for application logging
+  - metrics for metrics and query logging
+
 ### Launch via command line
 
-`
-SERVER=sqlserver
-PORT=sqlport<1433>
-USERNAME=sqluser
-PASSWORD=sqluserpassword
-EXPOSE=webport<4000>
-node ./index.js
-`
+To execute and the application using locally running mssql (see above for how to launch a docker instance of mssql), 
+use the following command
 
-To enable debugging set the environment variable DEBUG to app and/or metrics (DEBUG=app) 
-
-for example:
-`DEBUG=app,metrics SERVER=192.168.56.101 USERNAME=SA PASSWORD=qkD4x3yy node ./index.js`
+`
+DEBUG=app,metrics SERVER=localhost USERNAME=SA PASSWORD=qkD4x3yy node ./index.js
+`
 
 ### building and pushing image to dockerhub
 
-`npm run push`
-
-### Launch a mock mssql server
-
-`docker run -e ACCEPT_EULA=Y -e SA_PASSWORD=qkD4x3yy -p 1433:1433 --name mssql -d microsoft/mssql-server-linux`
-
-To use a persistent storage include `-v /mypath:/var/opt/mssql/data`
+Use docker push or the bundled Github Workflows/Actions (see .github/workflows)
