@@ -1,6 +1,8 @@
-/node_modules/
+node_modules
 *.iml
-/.idea/
+.idea
+.vscode
+.env
 package-lock.json
 yarn.lock
 yarn-error.log
