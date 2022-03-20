@@ -27,7 +27,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: awaragi/poc-hub-docker:latest
+          tags: awaragi/prometheus-mssql-exporter:latest
       - name: Update repo description
         uses: peter-evans/dockerhub-description@v2
         with:
