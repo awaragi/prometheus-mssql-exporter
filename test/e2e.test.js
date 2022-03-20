@@ -36,7 +36,6 @@ describe('E2E Test', function () {
             "up",
             "mssql_instance_local_time",
             "mssql_connections{database=\"master\",state=\"current\"}",
-            "mssql_connections{database=\"null\",state=\"current\"}",
             "mssql_deadlocks",
             "mssql_user_errors",
             "mssql_kill_connection_errors",
