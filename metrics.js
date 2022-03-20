@@ -6,7 +6,7 @@ const metricsLog = require("debug")("metrics");
 const client = require('prom-client');
 
 // UP metric
-const up = new client.Gauge({name: 'up', help: "UP Status"});
+const mssql_up = new client.Gauge({name: 'mssql_up', help: "UP Status"});
 
 // Query based metrics
 // -------------------
@@ -260,7 +260,7 @@ const metrics = [
 
 module.exports = {
     client: client,
-    up: up,
+    mssql_up,
     metrics: metrics,
 };
 

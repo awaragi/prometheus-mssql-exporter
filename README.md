@@ -85,13 +85,13 @@ To execute and the application using locally running mssql (see above for how to
 use the following command which will generate all a detailed logs
 
 ```shell
-npm run test:serve
+npm start
 ```
 
 A more verbose execution with all queries and their results printed out 
 
 ```shell
-npm run test:serve:verbose
+npm run start:verbose
 ```
 
 ### Using Docker

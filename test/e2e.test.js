@@ -20,7 +20,7 @@ describe('E2E Test', function () {
         const lines = parse(text);
         
         // some specific tests
-        expect(lines.up).toBe(1);
+        expect(lines.mssql_up).toBe(1);
         expect(lines.mssql_instance_local_time).toBeGreaterThan(0);
         expect(lines.mssql_total_physical_memory_kb).toBeGreaterThan(0);
         
@@ -33,7 +33,7 @@ describe('E2E Test', function () {
 
         // bulk ensure that all expected results of a vanilla mssql server instance are here
         expect(Object.keys(lines)).toEqual([
-            "up",
+            "mssql_up",
             "mssql_instance_local_time",
             "mssql_connections{database=\"master\",state=\"current\"}",
             "mssql_deadlocks",

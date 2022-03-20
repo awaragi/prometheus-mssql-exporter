@@ -7,7 +7,7 @@ const Request = require('tedious').Request;
 const app = require('express')();
 
 const client = require('./metrics').client;
-const up = require('./metrics').up;
+const mssql_up = require('./metrics').mssql_up;
 const metrics = require('./metrics').metrics;
 
 let config = {
@@ -92,7 +92,7 @@ async function measure(connection, collector) {
  * @returns Promise of execution (no value returned)
  */
 async function collect(connection) {
-    up.set(1);
+    mssql_up.set(1);
     for (let i = 0; i < metrics.length; i++) {
         await measure(connection, metrics[i]);
     }
@@ -111,9 +111,9 @@ app.get('/metrics', async (req, res) => {
     } catch (error) {
         // error connecting
         appLog("Error handling metrics request");
-        up.set(0);
+        mssql_up.set(0);
         res.header("X-Error", error.message || error);
-        res.send(client.register.getSingleMetricAsString(up.name));
+        res.send(client.register.getSingleMetricAsString(mssql_up.name));
     }
 });
 
