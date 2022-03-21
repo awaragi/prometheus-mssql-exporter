@@ -32,7 +32,8 @@
     "test:mssql:2017": "docker run --name mssql --rm -e ACCEPT_EULA=Y -e SA_PASSWORD=qkD4x3yy -p 1433:1433 --name mssql mcr.microsoft.com/mssql/server:2017-latest",
     "test:fetch": "curl http://localhost:4000/metrics",
     "test": "jest test",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "metrics": "node src/metrics-docs.js"
   },
   "dependencies": {
     "debug": "4.3.4",

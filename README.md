@@ -2,18 +2,25 @@
 
 Prometheus exporter for Microsoft SQL Server (MSSQL). Exposes the following metrics
 
+- mssql_product_version Instance version (Major.Minor)
 - mssql_instance_local_time Number of seconds since epoch on local instance
 - mssql_connections{database,state} Number of active connections
+- mssql_client_connections{client,database} Number of active client connections
 - mssql_deadlocks Number of lock requests per second that resulted in a deadlock since last restart
 - mssql_user_errors Number of user errors/sec since last restart
 - mssql_kill_connection_errors Number of kill connection errors/sec since last restart
-- mssql_database_state{database} State of each database (0=online 1=restoring 2=recovering 3=recovery pending 4=suspect 5=emergency 6=offline 7=copying 10=offline secondary)
+- mssql_database_state{database} Databases states: 0=ONLINE 1=RESTORING 2=RECOVERING 3=RECOVERY_PENDING 4=SUSPECT 5=EMERGENCY 6=OFFLINE 7=COPYING 10=OFFLINE_SECONDARY
 - mssql_log_growths{database} Total number of times the transaction log for the database has been expanded last restart
-- mssql_database_filesize{database,logicalname,type,filename} Physical sizes of files used by database in KB, their names and types (0=rows, 1=log, 2=filestream,3=n/a 4=fulltext(prior to version 2008 of MS SQL Server))
+- mssql_database_filesize{database,logicalname,type,filename} Physical sizes of files used by database in KB, their names and types (0=rows, 1=log, 2=filestream,3=n/a 4=fulltext(before v2008 of MSSQL))
+- mssql_page_read_total Page reads/sec
+- mssql_page_write_total Page writes/sec
 - mssql_page_life_expectancy Indicates the minimum number of seconds a page will stay in the buffer pool on this node without references. The traditional advice from Microsoft used to be that the PLE should remain above 300 seconds
+- mssql_lazy_write_total Lazy writes/sec
+- mssql_page_checkpoint_total Checkpoint pages/sec
 - mssql_io_stall{database,type} Wait time (ms) of stall since last restart
 - mssql_io_stall_total{database} Wait time (ms) of stall since last restart
 - mssql_batch_requests Number of Transact-SQL command batches received per second. This statistic is affected by all constraints (such as I/O, number of users, cachesize, complexity of requests, and so on). High batch requests mean good throughput
+- mssql_transactions{database} Number of transactions started for the database per second. Transactions/sec does not count XTP-only transactions (transactions started by a natively compiled stored procedure.)
 - mssql_page_fault_count Number of page faults since last restart
 - mssql_memory_utilization_percentage Percentage of memory utilization
 - mssql_total_physical_memory_kb Total physical memory in KB
@@ -59,7 +66,7 @@ To use a persistent storage add `-v /mypath:/var/opt/mssql/data` to your version
 ## List all available metrics
 
 ```shell
-node metrics.js
+npm run metrics
 ```
 
 ## Environment variables
