@@ -1,6 +1,6 @@
 {
   "name": "prometheus-mssql-exporter",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "main": "index.js",
   "private": false,
   "keywords": [
