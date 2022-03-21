@@ -4,12 +4,28 @@
  */
 const metricsLog = require("debug")("metrics");
 const client = require("prom-client");
+const { productVersionParse } = require("./utils");
 
 // UP metric
 const mssql_up = new client.Gauge({ name: "mssql_up", help: "UP Status" });
 
 // Query based metrics
 // -------------------
+const mssql_product_version = {
+  metrics: {
+    mssql_product_version: new client.Gauge({ name: "mssql_product_version", help: "Instance version (Major.Minor)" }),
+  },
+  query: `SELECT CONVERT(VARCHAR(128), SERVERPROPERTY ('productversion')) AS ProductVersion,
+  SERVERPROPERTY('ProductVersion') AS ProductVersion
+`,
+  collect: function (rows, metrics) {
+    let v = productVersionParse(rows[0][0].value);
+    const mssql_product_version = v.major + v.minor / 10;
+    metricsLog("Fetched version of instance", mssql_product_version);
+    metrics.mssql_product_version.set(mssql_product_version);
+  },
+};
+
 const mssql_instance_local_time = {
   metrics: {
     mssql_instance_local_time: new client.Gauge({ name: "mssql_instance_local_time", help: "Number of seconds since epoch on local instance" }),
@@ -331,6 +347,7 @@ FROM sys.dm_os_sys_memory`,
 };
 
 const metrics = [
+  mssql_product_version,
   mssql_instance_local_time,
   mssql_connections,
   mssql_client_connections,
