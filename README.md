@@ -49,6 +49,21 @@ It is **_required_** that the specified user has the following permissions
 - GRANT VIEW ANY DEFINITION TO <user>
 - GRANT VIEW SERVER STATE TO <user>
 
+## Frequently Asked Questions (FAQ)
+
+### Unable to connect to database
+
+Raised in [issue #19](https://github.com/awaragi/prometheus-mssql-exporter/issues/19)
+
+Probably your SQL Server is working as named instance. For named instances the TCP port is dynamically configured by default, so you may need do explicitly specify port in MSSQL settings as described [here](https://docs.microsoft.com/en-US/sql/database-engine/configure-windows/configure-a-server-to-listen-on-a-specific-tcp-port?view=sql-server-ver15). 
+
+### Running multiple instances of exporter
+
+Raised in [issue #20](https://github.com/awaragi/prometheus-mssql-exporter/issues/20)
+
+Each container should use its own docker port forward (e.g. -p 4001:4000 and -p 4002:4000)
+
+
 ## Development
 
 ## Launch a test mssql server
