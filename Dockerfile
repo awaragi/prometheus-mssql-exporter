@@ -8,7 +8,7 @@ RUN mkdir -p /usr/src/app
 # Change directory so that our commands run inside this new directory
 WORKDIR /usr/src/app
 
-# Copy dependency definitions
+# Copy application
 COPY package.json src/*.js ./
 
 # Install dependecies
