@@ -1,7 +1,7 @@
 {
   "name": "prometheus-mssql-exporter",
   "version": "1.1.0",
-  "main": "index.js",
+  "main": "src/index.js",
   "private": false,
   "keywords": [
     "prometheus",
@@ -26,8 +26,8 @@
     "docker:build": "docker build . -t awaragi/prometheus-mssql-exporter",
     "docker:run": "export DOCKERID=$(docker build -q .) && docker run --name prometheus-mssql-exporter --rm -it -p 4000:4000 -e SERVER=$(docker inspect mssql | jq -r '.[].NetworkSettings.Networks.bridge.IPAddress') -e USERNAME=SA -e PASSWORD=qkD4x3yy -e DEBUG=app,db,metrics $DOCKERID && docker image rm $DOCKERID",
     "docker:run:published": "export DOCKERID=awaragi/prometheus-mssql-exporter && docker run --name prometheus-mssql-exporter --rm -it -p 4000:4000 -e SERVER=$(docker inspect mssql | jq -r '.[].NetworkSettings.Networks.bridge.IPAddress') -e USERNAME=SA -e PASSWORD=qkD4x3yy -e DEBUG=app,db,metrics $DOCKERID && docker image rm $DOCKERID",
-    "start": "DEBUG=app,db,metrics SERVER=localhost USERNAME=SA PASSWORD=qkD4x3yy node ./index.js",
-    "start:verbose": "DEBUG=app,db,metrics,metrics SERVER=localhost USERNAME=SA PASSWORD=qkD4x3yy node ./index.js",
+    "start": "DEBUG=app,db,metrics SERVER=localhost USERNAME=SA PASSWORD=qkD4x3yy node src/index.js",
+    "start:verbose": "DEBUG=app,db,metrics,metrics SERVER=localhost USERNAME=SA PASSWORD=qkD4x3yy node src/index.js",
     "test:mssql:2019": "docker run --name mssql --rm -e ACCEPT_EULA=Y -e SA_PASSWORD=qkD4x3yy -p 1433:1433 --name mssql mcr.microsoft.com/mssql/server:2019-latest",
     "test:mssql:2017": "docker run --name mssql --rm -e ACCEPT_EULA=Y -e SA_PASSWORD=qkD4x3yy -p 1433:1433 --name mssql mcr.microsoft.com/mssql/server:2017-latest",
     "test:fetch": "curl http://localhost:4000/metrics",

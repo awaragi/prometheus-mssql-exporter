@@ -14,11 +14,11 @@ let config = {
   connect: {
     server: process.env["SERVER"],
     authentication: {
-      type: 'default',
+      type: "default",
       options: {
         userName: process.env["USERNAME"],
         password: process.env["PASSWORD"],
-      }
+      },
     },
     options: {
       port: parseInt(process.env["PORT"]) || 1433,
@@ -104,9 +104,9 @@ async function collect(connection) {
   }
 }
 
-app.get('/', (req, res) => {
-  res.redirect('/metrics');
-})
+app.get("/", (req, res) => {
+  res.redirect("/metrics");
+});
 
 app.get("/metrics", async (req, res) => {
   res.contentType(client.register.contentType);

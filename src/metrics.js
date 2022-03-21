@@ -59,7 +59,11 @@ GROUP BY DB_NAME(sP.dbid)`,
 
 const mssql_client_connections = {
   metrics: {
-    mssql_client_connections: new client.Gauge({ name: "mssql_client_connections", help: "Number of active client connections", labelNames: ["client", "database"] }),
+    mssql_client_connections: new client.Gauge({
+      name: "mssql_client_connections",
+      help: "Number of active client connections",
+      labelNames: ["client", "database"],
+    }),
   },
   query: `SELECT host_name, DB_NAME(database_id), COUNT(*)
 FROM sys.dm_exec_sessions
@@ -72,9 +76,9 @@ GROUP BY host_name, database_id`,
       const database = row[1].value;
       const mssql_client_connections = row[2].value;
       metricsLog("Fetch number of connections for client", client, database, mssql_client_connections);
-      metrics.mssql_client_connections.set({client, database}, mssql_client_connections);
+      metrics.mssql_client_connections.set({ client, database }, mssql_client_connections);
     }
-  }
+  },
 };
 
 const mssql_deadlocks = {
@@ -189,11 +193,14 @@ const mssql_database_filesize = {
 
 const mssql_buffer_manager = {
   metrics: {
-    mssql_page_read_total: new client.Gauge({name: 'mssql_page_read_total', help: 'Page reads/sec'}),
-    mssql_page_write_total: new client.Gauge({name: 'mssql_page_write_total', help: 'Page writes/sec'}),
-    mssql_page_life_expectancy: new client.Gauge({name: 'mssql_page_life_expectancy', help: 'Indicates the minimum number of seconds a page will stay in the buffer pool on this node without references. The traditional advice from Microsoft used to be that the PLE should remain above 300 seconds'}),
-    mssql_lazy_write_total: new client.Gauge({name: 'mssql_lazy_write_total', help: 'Lazy writes/sec'}),
-    mssql_page_checkpoint_total: new client.Gauge({name: 'mssql_page_checkpoint_total', help: 'Checkpoint pages/sec'}),
+    mssql_page_read_total: new client.Gauge({ name: "mssql_page_read_total", help: "Page reads/sec" }),
+    mssql_page_write_total: new client.Gauge({ name: "mssql_page_write_total", help: "Page writes/sec" }),
+    mssql_page_life_expectancy: new client.Gauge({
+      name: "mssql_page_life_expectancy",
+      help: "Indicates the minimum number of seconds a page will stay in the buffer pool on this node without references. The traditional advice from Microsoft used to be that the PLE should remain above 300 seconds",
+    }),
+    mssql_lazy_write_total: new client.Gauge({ name: "mssql_lazy_write_total", help: "Lazy writes/sec" }),
+    mssql_page_checkpoint_total: new client.Gauge({ name: "mssql_page_checkpoint_total", help: "Checkpoint pages/sec" }),
   },
   query: `
         SELECT * FROM 
@@ -216,13 +223,26 @@ const mssql_buffer_manager = {
     const page_life_expectancy = row[2].value;
     const lazy_write_total = row[3].value;
     const page_checkpoint_total = row[4].value;
-    metricsLog("Fetch the Buffer Manager", "page_read", page_read, "page_write", page_write, "page_life_expectancy", page_life_expectancy, "page_checkpoint_total", "page_checkpoint_total", page_checkpoint_total, "lazy_write_total", lazy_write_total);
+    metricsLog(
+      "Fetch the Buffer Manager",
+      "page_read",
+      page_read,
+      "page_write",
+      page_write,
+      "page_life_expectancy",
+      page_life_expectancy,
+      "page_checkpoint_total",
+      "page_checkpoint_total",
+      page_checkpoint_total,
+      "lazy_write_total",
+      lazy_write_total
+    );
     metrics.mssql_page_read_total.set(page_read);
     metrics.mssql_page_write_total.set(page_write);
     metrics.mssql_page_life_expectancy.set(page_life_expectancy);
     metrics.mssql_page_checkpoint_total.set(page_checkpoint_total);
     metrics.mssql_lazy_write_total.set(lazy_write_total);
-  }
+  },
 };
 
 const mssql_io_stall = {
@@ -282,7 +302,11 @@ WHERE counter_name = 'Batch Requests/sec'`,
 
 const mssql_transactions = {
   metrics: {
-    mssql_transactions: new client.Gauge({name: 'mssql_transactions', help: 'Number of transactions started for the database per second. Transactions/sec does not count XTP-only transactions (transactions started by a natively compiled stored procedure.)', labelNames: ['database']})
+    mssql_transactions: new client.Gauge({
+      name: "mssql_transactions",
+      help: "Number of transactions started for the database per second. Transactions/sec does not count XTP-only transactions (transactions started by a natively compiled stored procedure.)",
+      labelNames: ["database"],
+    }),
   },
   query: `SELECT rtrim(instance_name), cntr_value
 FROM sys.dm_os_performance_counters
@@ -293,9 +317,9 @@ WHERE counter_name = 'Transactions/sec' AND instance_name <> '_Total'`,
       const database = row[0].value;
       const transactions = row[1].value;
       metricsLog("Fetch number of transactions per second", database, transactions);
-      metrics.mssql_transactions.set({database}, transactions);
+      metrics.mssql_transactions.set({ database }, transactions);
     }
-  }
+  },
 };
 
 const mssql_os_process_memory = {

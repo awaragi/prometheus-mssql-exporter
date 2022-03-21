@@ -9,7 +9,7 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 # Copy dependency definitions
-COPY package.json *.js ./
+COPY package.json src/*.js ./
 
 # Install dependecies
 RUN npm install --production
