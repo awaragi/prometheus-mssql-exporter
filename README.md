@@ -55,7 +55,7 @@ It is **_required_** that the specified user has the following permissions
 
 Raised in [issue #19](https://github.com/awaragi/prometheus-mssql-exporter/issues/19)
 
-Probably your SQL Server is working as named instance. For named instances the TCP port is dynamically configured by default, so you may need do explicitly specify port in MSSQL settings as described [here](https://docs.microsoft.com/en-US/sql/database-engine/configure-windows/configure-a-server-to-listen-on-a-specific-tcp-port?view=sql-server-ver15). 
+Probably your SQL Server is working as named instance. For named instances the TCP port is dynamically configured by default, so you may need do explicitly specify port in MSSQL settings as described [here](https://docs.microsoft.com/en-US/sql/database-engine/configure-windows/configure-a-server-to-listen-on-a-specific-tcp-port?view=sql-server-ver15).
 
 ### Running multiple instances of exporter
 
@@ -89,7 +89,7 @@ To use a persistent storage add `-v /<mypath>:/var/opt/mssql/data` to the comman
 
 ## List all available metrics
 
-To list all available metrics and the used queries to generate these metrics - say for for DBA validation, use the following command 
+To list all available metrics and the used queries to generate these metrics - say for for DBA validation, use the following command
 
 ```shell
 npm run metrics
@@ -135,23 +135,26 @@ npm run docker:run
 
 ## Testing
 
+### Curl or Browser
+
 Use curl or wget to fetch the metrics from launched web application.
 
 ```shell
 curl http://localhost:4000/metrics
 ```
 
+### E2E Test with Expectations
+
 E2E test is available to execute against MSSQL 2017 or 2019 docker instances.
-Any added metrics must get added to the e2e tests.
 
-## Metric listing
+The test does not care about the values of the metrics but checks the presence of all expected keys.
 
-Call metrics.js file directly to generate documentation of available metrics and to update this README file.
+To add new metrics, the E2E must get updated with their keys to pass.
 
 ```shell
-node metrics.js
+npm test
 ```
 
 ## building and pushing image to dockerhub
 
-Use docker push or the bundled Github Workflows/Actions (see .github/workflows)
+Use `docker build` and `docker push` or the bundled Github Workflows/Actions (see .github/workflows)
