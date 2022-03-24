@@ -75,7 +75,7 @@ GROUP BY host_name, database_id`,
       const client = row[0].value;
       const database = row[1].value;
       const mssql_client_connections = row[2].value;
-      metricsLog("Fetch number of connections for client", client, database, mssql_client_connections);
+      metricsLog("Fetched number of connections for client", client, database, mssql_client_connections);
       metrics.mssql_client_connections.set({ client, database }, mssql_client_connections);
     }
   },
@@ -140,7 +140,7 @@ const mssql_database_state = {
       const row = rows[i];
       const database = row[0].value;
       const mssql_database_state = row[1].value;
-      metricsLog("Fetched state for database", database);
+      metricsLog("Fetched state for database", database, mssql_database_state);
       metrics.mssql_database_state.set({ database }, mssql_database_state);
     }
   },
@@ -162,7 +162,7 @@ WHERE counter_name = 'Log Growths' and instance_name <> '_Total'`,
       const row = rows[i];
       const database = row[0].value;
       const mssql_log_growths = row[1].value;
-      metricsLog("Fetched number log growths for database", database);
+      metricsLog("Fetched number log growths for database", database, mssql_log_growths);
       metrics.mssql_log_growths.set({ database }, mssql_log_growths);
     }
   },
@@ -185,7 +185,18 @@ const mssql_database_filesize = {
       const type = row[2].value;
       const filename = row[3].value;
       const mssql_database_filesize = row[4].value;
-      metricsLog("Fetched size of files for database ", database);
+      metricsLog(
+        "Fetched size of files for database ",
+        database,
+        "logicalname",
+        logicalname,
+        "type",
+        type,
+        "filename",
+        filename,
+        "size",
+        mssql_database_filesize
+      );
       metrics.mssql_database_filesize.set({ database, logicalname, type, filename }, mssql_database_filesize);
     }
   },
@@ -224,7 +235,7 @@ const mssql_buffer_manager = {
     const lazy_write_total = row[3].value;
     const page_checkpoint_total = row[4].value;
     metricsLog(
-      "Fetch the Buffer Manager",
+      "Fetched the Buffer Manager",
       "page_read",
       page_read,
       "page_write",
@@ -316,7 +327,7 @@ WHERE counter_name = 'Transactions/sec' AND instance_name <> '_Total'`,
       const row = rows[i];
       const database = row[0].value;
       const transactions = row[1].value;
-      metricsLog("Fetch number of transactions per second", database, transactions);
+      metricsLog("Fetched number of transactions per second", database, transactions);
       metrics.mssql_transactions.set({ database }, transactions);
     }
   },
