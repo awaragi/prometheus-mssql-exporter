@@ -63,10 +63,19 @@ Raised in [issue #20](https://github.com/awaragi/prometheus-mssql-exporter/issue
 
 Each container should use its own docker port forward (e.g. -p 4001:4000 and -p 4002:4000)
 
+### What Grafana dashboard can I use
+
+Here are some suggestions on available Grafana dashboards. If you are an author or such dashboard and want to have it referenced here, simply create a Pull Request.
+
+- https://grafana.com/grafana/dashboards/13919
+
+### Running in the background
+
+Use `docker run -d ...` to run the container in background
 
 ## Development
 
-## Launch a test mssql server
+## Launching a test mssql server
 
 To launch a local mssql instance to test against
 
@@ -76,9 +85,11 @@ npm run test:mssql:2019
 npm run test:mssql:2017
 ```
 
-To use a persistent storage add `-v /mypath:/var/opt/mssql/data` to your version of package.json
+To use a persistent storage add `-v /<mypath>:/var/opt/mssql/data` to the command line.
 
 ## List all available metrics
+
+To list all available metrics and the used queries to generate these metrics - say for for DBA validation, use the following command 
 
 ```shell
 npm run metrics

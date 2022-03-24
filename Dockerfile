@@ -9,10 +9,10 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 # Copy application
-COPY package.json src/*.js ./
+COPY package.json package-lock.json src/*.js ./
 
-# Install dependecies
-RUN npm install --production
+# Install dependencies
+RUN npm ci --production
 
 # Expose the port the app runs in
 EXPOSE 4000

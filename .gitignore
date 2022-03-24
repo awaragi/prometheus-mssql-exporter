@@ -3,6 +3,5 @@ node_modules
 .idea
 .vscode
 .env
-package-lock.json
 yarn.lock
 yarn-error.log
