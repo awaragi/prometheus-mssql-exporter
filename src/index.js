@@ -13,24 +13,30 @@ const metrics = require("./metrics").metrics;
 let config = {
   connect: {
     server: process.env["SERVER"],
-    userName: process.env["USERNAME"],
-    password: process.env["PASSWORD"],
+    authentication: {
+      type: "default",
+      options: {
+        userName: process.env["USERNAME"],
+        password: process.env["PASSWORD"],
+      },
+    },
     options: {
       port: parseInt(process.env["PORT"]) || 1433,
       encrypt: true,
+      trustServerCertificate: true,
       rowCollectionOnRequestCompletion: true,
     },
   },
-  port: process.env["EXPOSE"] || 4000,
+  port: parseInt(process.env["EXPOSE"]) || 4000,
 };
 
 if (!config.connect.server) {
   throw new Error("Missing SERVER information");
 }
-if (!config.connect.userName) {
+if (!config.connect.authentication.options.userName) {
   throw new Error("Missing USERNAME information");
 }
-if (!config.connect.password) {
+if (!config.connect.authentication.options.password) {
   throw new Error("Missing PASSWORD information");
 }
 
@@ -41,7 +47,7 @@ if (!config.connect.password) {
  */
 async function connect() {
   return new Promise((resolve, reject) => {
-    dbLog("Connecting to database", config.connect.server);
+    dbLog("Connecting to database", config.connect.server, "using user", config.connect.authentication.options.userName);
     let connection = new Connection(config.connect);
     connection.on("connect", (error) => {
       if (error) {
@@ -55,6 +61,7 @@ async function connect() {
     connection.on("end", () => {
       dbLog("Connection to database ended");
     });
+    connection.connect();
   });
 }
 
@@ -97,6 +104,10 @@ async function collect(connection) {
   }
 }
 
+app.get("/", (req, res) => {
+  res.redirect("/metrics");
+});
+
 app.get("/metrics", async (req, res) => {
   res.contentType(client.register.contentType);
 
@@ -118,7 +129,7 @@ app.get("/metrics", async (req, res) => {
 
 const server = app.listen(config.port, function () {
   appLog(
-    `Prometheus-MSSQL Exporter listening on local port ${config.port} monitoring ${config.connect.userName}@${config.connect.server}:${config.connect.options.port}`
+    `Prometheus-MSSQL Exporter listening on local port ${config.port} monitoring ${config.connect.authentication.options.userName}@${config.connect.server}:${config.connect.options.port}`
   );
 });
 

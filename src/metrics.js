@@ -4,12 +4,28 @@
  */
 const metricsLog = require("debug")("metrics");
 const client = require("prom-client");
+const { productVersionParse } = require("./utils");
 
 // UP metric
 const mssql_up = new client.Gauge({ name: "mssql_up", help: "UP Status" });
 
 // Query based metrics
 // -------------------
+const mssql_product_version = {
+  metrics: {
+    mssql_product_version: new client.Gauge({ name: "mssql_product_version", help: "Instance version (Major.Minor)" }),
+  },
+  query: `SELECT CONVERT(VARCHAR(128), SERVERPROPERTY ('productversion')) AS ProductVersion,
+  SERVERPROPERTY('ProductVersion') AS ProductVersion
+`,
+  collect: function (rows, metrics) {
+    let v = productVersionParse(rows[0][0].value);
+    const mssql_product_version = v.major + v.minor / 10;
+    metricsLog("Fetched version of instance", mssql_product_version);
+    metrics.mssql_product_version.set(mssql_product_version);
+  },
+};
+
 const mssql_instance_local_time = {
   metrics: {
     mssql_instance_local_time: new client.Gauge({ name: "mssql_instance_local_time", help: "Number of seconds since epoch on local instance" }),
@@ -36,7 +52,31 @@ GROUP BY DB_NAME(sP.dbid)`,
       const database = row[0].value;
       const mssql_connections = row[1].value;
       metricsLog("Fetched number of connections for database", database, mssql_connections);
-      metrics.mssql_connections.set({ database: database, state: "current" }, mssql_connections);
+      metrics.mssql_connections.set({ database, state: "current" }, mssql_connections);
+    }
+  },
+};
+
+const mssql_client_connections = {
+  metrics: {
+    mssql_client_connections: new client.Gauge({
+      name: "mssql_client_connections",
+      help: "Number of active client connections",
+      labelNames: ["client", "database"],
+    }),
+  },
+  query: `SELECT host_name, DB_NAME(database_id), COUNT(*)
+FROM sys.dm_exec_sessions
+WHERE is_user_process=1
+GROUP BY host_name, database_id`,
+  collect: function (rows, metrics) {
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const client = row[0].value;
+      const database = row[1].value;
+      const mssql_client_connections = row[2].value;
+      metricsLog("Fetched number of connections for client", client, database, mssql_client_connections);
+      metrics.mssql_client_connections.set({ client, database }, mssql_client_connections);
     }
   },
 };
@@ -50,7 +90,7 @@ const mssql_deadlocks = {
   },
   query: `SELECT cntr_value
 FROM sys.dm_os_performance_counters
-where counter_name = 'Number of Deadlocks/sec' AND instance_name = '_Total'`,
+WHERE counter_name = 'Number of Deadlocks/sec' AND instance_name = '_Total'`,
   collect: function (rows, metrics) {
     const mssql_deadlocks = rows[0][0].value;
     metricsLog("Fetched number of deadlocks/sec", mssql_deadlocks);
@@ -64,7 +104,7 @@ const mssql_user_errors = {
   },
   query: `SELECT cntr_value
 FROM sys.dm_os_performance_counters
-where counter_name = 'Errors/sec' AND instance_name = 'User Errors'`,
+WHERE counter_name = 'Errors/sec' AND instance_name = 'User Errors'`,
   collect: function (rows, metrics) {
     const mssql_user_errors = rows[0][0].value;
     metricsLog("Fetched number of user errors/sec", mssql_user_errors);
@@ -78,7 +118,7 @@ const mssql_kill_connection_errors = {
   },
   query: `SELECT cntr_value
 FROM sys.dm_os_performance_counters
-where counter_name = 'Errors/sec' AND instance_name = 'Kill Connection Errors'`,
+WHERE counter_name = 'Errors/sec' AND instance_name = 'Kill Connection Errors'`,
   collect: function (rows, metrics) {
     const mssql_kill_connection_errors = rows[0][0].value;
     metricsLog("Fetched number of kill connection errors/sec", mssql_kill_connection_errors);
@@ -100,8 +140,8 @@ const mssql_database_state = {
       const row = rows[i];
       const database = row[0].value;
       const mssql_database_state = row[1].value;
-      metricsLog("Fetched state for database", database);
-      metrics.mssql_database_state.set({ database: database }, mssql_database_state);
+      metricsLog("Fetched state for database", database, mssql_database_state);
+      metrics.mssql_database_state.set({ database }, mssql_database_state);
     }
   },
 };
@@ -114,16 +154,16 @@ const mssql_log_growths = {
       labelNames: ["database"],
     }),
   },
-  query: `SELECT rtrim(instance_name),cntr_value
-FROM sys.dm_os_performance_counters where counter_name = 'Log Growths'
-and  instance_name <> '_Total'`,
+  query: `SELECT rtrim(instance_name), cntr_value
+FROM sys.dm_os_performance_counters 
+WHERE counter_name = 'Log Growths' and instance_name <> '_Total'`,
   collect: function (rows, metrics) {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const database = row[0].value;
       const mssql_log_growths = row[1].value;
-      metricsLog("Fetched number log growths for database", database);
-      metrics.mssql_log_growths.set({ database: database }, mssql_log_growths);
+      metricsLog("Fetched number log growths for database", database, mssql_log_growths);
+      metrics.mssql_log_growths.set({ database }, mssql_log_growths);
     }
   },
 };
@@ -136,7 +176,7 @@ const mssql_database_filesize = {
       labelNames: ["database", "logicalname", "type", "filename"],
     }),
   },
-  query: `SELECT DB_NAME(database_id) AS database_name, Name AS logical_name, type, physical_name, (size * cast(8 as bigint)) size_kb FROM sys.master_files`,
+  query: `SELECT DB_NAME(database_id) AS database_name, name AS logical_name, type, physical_name, (size * CAST(8 AS BIGINT)) size_kb FROM sys.master_files`,
   collect: function (rows, metrics) {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -145,25 +185,74 @@ const mssql_database_filesize = {
       const type = row[2].value;
       const filename = row[3].value;
       const mssql_database_filesize = row[4].value;
-      metricsLog("Fetched size of files for database ", database);
-      metrics.mssql_database_filesize.set({ database: database, logicalname: logicalname, type: type, filename: filename }, mssql_database_filesize);
+      metricsLog(
+        "Fetched size of files for database ",
+        database,
+        "logicalname",
+        logicalname,
+        "type",
+        type,
+        "filename",
+        filename,
+        "size",
+        mssql_database_filesize
+      );
+      metrics.mssql_database_filesize.set({ database, logicalname, type, filename }, mssql_database_filesize);
     }
   },
 };
 
-const mssql_page_life_expectancy = {
+const mssql_buffer_manager = {
   metrics: {
+    mssql_page_read_total: new client.Gauge({ name: "mssql_page_read_total", help: "Page reads/sec" }),
+    mssql_page_write_total: new client.Gauge({ name: "mssql_page_write_total", help: "Page writes/sec" }),
     mssql_page_life_expectancy: new client.Gauge({
       name: "mssql_page_life_expectancy",
       help: "Indicates the minimum number of seconds a page will stay in the buffer pool on this node without references. The traditional advice from Microsoft used to be that the PLE should remain above 300 seconds",
     }),
+    mssql_lazy_write_total: new client.Gauge({ name: "mssql_lazy_write_total", help: "Lazy writes/sec" }),
+    mssql_page_checkpoint_total: new client.Gauge({ name: "mssql_page_checkpoint_total", help: "Checkpoint pages/sec" }),
   },
-  query: `SELECT TOP 1  cntr_value
-FROM sys.dm_os_performance_counters with (nolock)where counter_name='Page life expectancy'`,
+  query: `
+        SELECT * FROM 
+        (
+            SELECT rtrim(counter_name) as counter_name, cntr_value
+            FROM sys.dm_os_performance_counters
+            WHERE counter_name in ('Page reads/sec', 'Page writes/sec', 'Page life expectancy', 'Lazy writes/sec', 'Checkpoint pages/sec')
+            AND object_name = 'SQLServer:Buffer Manager'
+        ) d
+        PIVOT
+        (
+        MAX(cntr_value)
+        FOR counter_name IN ([Page reads/sec], [Page writes/sec], [Page life expectancy], [Lazy writes/sec], [Checkpoint pages/sec])
+        ) piv
+    `,
   collect: function (rows, metrics) {
-    const mssql_page_life_expectancy = rows[0][0].value;
-    metricsLog("Fetched page life expectancy", mssql_page_life_expectancy);
-    metrics.mssql_page_life_expectancy.set(mssql_page_life_expectancy);
+    const row = rows[0];
+    const page_read = row[0].value;
+    const page_write = row[1].value;
+    const page_life_expectancy = row[2].value;
+    const lazy_write_total = row[3].value;
+    const page_checkpoint_total = row[4].value;
+    metricsLog(
+      "Fetched the Buffer Manager",
+      "page_read",
+      page_read,
+      "page_write",
+      page_write,
+      "page_life_expectancy",
+      page_life_expectancy,
+      "page_checkpoint_total",
+      "page_checkpoint_total",
+      page_checkpoint_total,
+      "lazy_write_total",
+      lazy_write_total
+    );
+    metrics.mssql_page_read_total.set(page_read);
+    metrics.mssql_page_write_total.set(page_write);
+    metrics.mssql_page_life_expectancy.set(page_life_expectancy);
+    metrics.mssql_page_checkpoint_total.set(page_checkpoint_total);
+    metrics.mssql_lazy_write_total.set(lazy_write_total);
   },
 };
 
@@ -182,7 +271,7 @@ cast(DB_Name(a.database_id) as varchar) as name,
 FROM
 sys.dm_io_virtual_file_stats(null, null) a
 INNER JOIN sys.master_files b ON a.database_id = b.database_id and a.file_id = b.file_id
-group by a.database_id`,
+GROUP BY a.database_id`,
   collect: function (rows, metrics) {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -192,12 +281,12 @@ group by a.database_id`,
       const stall = row[3].value;
       const queued_read = row[4].value;
       const queued_write = row[5].value;
-      metricsLog("Fetched number of stalls for database", database);
-      metrics.mssql_io_stall_total.set({ database: database }, stall);
-      metrics.mssql_io_stall.set({ database: database, type: "read" }, read);
-      metrics.mssql_io_stall.set({ database: database, type: "write" }, write);
-      metrics.mssql_io_stall.set({ database: database, type: "queued_read" }, queued_read);
-      metrics.mssql_io_stall.set({ database: database, type: "queued_write" }, queued_write);
+      metricsLog("Fetched number of stalls for database", database, "read", read, "write", write, "queued_read", queued_read, "queued_write", queued_write);
+      metrics.mssql_io_stall_total.set({ database }, stall);
+      metrics.mssql_io_stall.set({ database, type: "read" }, read);
+      metrics.mssql_io_stall.set({ database, type: "write" }, write);
+      metrics.mssql_io_stall.set({ database, type: "queued_read" }, queued_read);
+      metrics.mssql_io_stall.set({ database, type: "queued_write" }, queued_write);
     }
   },
 };
@@ -210,7 +299,8 @@ const mssql_batch_requests = {
     }),
   },
   query: `SELECT TOP 1 cntr_value
-FROM sys.dm_os_performance_counters where counter_name = 'Batch Requests/sec'`,
+FROM sys.dm_os_performance_counters 
+WHERE counter_name = 'Batch Requests/sec'`,
   collect: function (rows, metrics) {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -221,13 +311,35 @@ FROM sys.dm_os_performance_counters where counter_name = 'Batch Requests/sec'`,
   },
 };
 
+const mssql_transactions = {
+  metrics: {
+    mssql_transactions: new client.Gauge({
+      name: "mssql_transactions",
+      help: "Number of transactions started for the database per second. Transactions/sec does not count XTP-only transactions (transactions started by a natively compiled stored procedure.)",
+      labelNames: ["database"],
+    }),
+  },
+  query: `SELECT rtrim(instance_name), cntr_value
+FROM sys.dm_os_performance_counters
+WHERE counter_name = 'Transactions/sec' AND instance_name <> '_Total'`,
+  collect: function (rows, metrics) {
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const database = row[0].value;
+      const transactions = row[1].value;
+      metricsLog("Fetched number of transactions per second", database, transactions);
+      metrics.mssql_transactions.set({ database }, transactions);
+    }
+  },
+};
+
 const mssql_os_process_memory = {
   metrics: {
     mssql_page_fault_count: new client.Gauge({ name: "mssql_page_fault_count", help: "Number of page faults since last restart" }),
     mssql_memory_utilization_percentage: new client.Gauge({ name: "mssql_memory_utilization_percentage", help: "Percentage of memory utilization" }),
   },
   query: `SELECT page_fault_count, memory_utilization_percentage 
-from sys.dm_os_process_memory`,
+FROM sys.dm_os_process_memory`,
   collect: function (rows, metrics) {
     const page_fault_count = rows[0][0].value;
     const memory_utilization_percentage = rows[0][1].value;
@@ -245,7 +357,7 @@ const mssql_os_sys_memory = {
     mssql_available_page_file_kb: new client.Gauge({ name: "mssql_available_page_file_kb", help: "Available page file in KB" }),
   },
   query: `SELECT total_physical_memory_kb, available_physical_memory_kb, total_page_file_kb, available_page_file_kb 
-from sys.dm_os_sys_memory`,
+FROM sys.dm_os_sys_memory`,
   collect: function (rows, metrics) {
     const mssql_total_physical_memory_kb = rows[0][0].value;
     const mssql_available_physical_memory_kb = rows[0][1].value;
@@ -269,36 +381,23 @@ from sys.dm_os_sys_memory`,
   },
 };
 
-const mssql_database_state = {
-    metrics: {
-        mssql_database_state: new client.Gauge({name: 'mssql_database_state', help: 'State of databases: 0 = ONLINE, 1 = RESTORING, 2 = RECOVERING 3 = RECOVERY_PENDING 4 = SUSPECT 5 = EMERGENCY 6 = OFFLINE 7 = COPYING 10 = OFFLINE_SECONDARY', labelNames: ['database']})
-    },
-    query: `select name, state from sys.databases;`,
-    collect: function (rows, metrics) {
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            const database = row[0].value;
-            const state = row[1].value;
-            metrics.mssql_database_state.set({database: database}, state);
-        }
-    }
-};
-
 const metrics = [
+  mssql_product_version,
   mssql_instance_local_time,
   mssql_connections,
+  mssql_client_connections,
   mssql_deadlocks,
   mssql_user_errors,
   mssql_kill_connection_errors,
   mssql_database_state,
   mssql_log_growths,
   mssql_database_filesize,
-  mssql_page_life_expectancy,
+  mssql_buffer_manager,
   mssql_io_stall,
   mssql_batch_requests,
+  mssql_transactions,
   mssql_os_process_memory,
   mssql_os_sys_memory,
-  mssql_database_state,
 ];
 
 module.exports = {
@@ -306,26 +405,3 @@ module.exports = {
   mssql_up,
   metrics: metrics,
 };
-
-// DOCUMENTATION of queries and their associated metrics (targeted to DBAs)
-if (require.main === module) {
-  metrics.forEach(function (m) {
-    for (let key in m.metrics) {
-      if (m.metrics.hasOwnProperty(key)) {
-        console.log("--", m.metrics[key].name, m.metrics[key].help);
-      }
-    }
-    console.log(m.query + ";");
-    console.log("");
-  });
-
-  console.log("/*");
-  metrics.forEach(function (m) {
-    for (let key in m.metrics) {
-      if (m.metrics.hasOwnProperty(key)) {
-        console.log("* ", m.metrics[key].name + (m.metrics[key].labelNames.length > 0 ? "{" + m.metrics[key].labelNames + "}" : ""), m.metrics[key].help);
-      }
-    }
-  });
-  console.log("*/");
-}

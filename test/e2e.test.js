@@ -21,19 +21,27 @@ describe("E2E Test", function () {
 
     // some specific tests
     expect(lines.mssql_up).toBe(1);
+    expect([14, 15]).toContain(lines.mssql_product_version);
     expect(lines.mssql_instance_local_time).toBeGreaterThan(0);
     expect(lines.mssql_total_physical_memory_kb).toBeGreaterThan(0);
 
-    // lets remove specific 2019 entries so we have a simple expect to execute
-    // we are going to assume that if all else is here then it is working
-    // once we have a version summary metric, we might be able to split this test into multiple ones
-    delete lines['mssql_database_filesize{database="tempdb",logicalname="tempdev2",type="0",filename="/var/opt/mssql/data/tempdb2.ndf"}'];
-    delete lines['mssql_database_filesize{database="tempdb",logicalname="tempdev3",type="0",filename="/var/opt/mssql/data/tempdb3.ndf"}'];
-    delete lines['mssql_database_filesize{database="tempdb",logicalname="tempdev4",type="0",filename="/var/opt/mssql/data/tempdb4.ndf"}'];
+    // lets ensure that there is at least one instance of these 2019 entries (that differ from 2017)
+    const v2019 = ["mssql_client_connections", "mssql_database_filesize"];
+    v2019.forEach((k2019) => {
+      const keys = Object.keys(lines);
+      const i = keys.findIndex((key) => key.startsWith(k2019));
+      expect(i).toBeGreaterThanOrEqual(0);
+      keys
+        .filter((key) => key.startsWith(k2019))
+        .forEach((key) => {
+          delete lines[key];
+        });
+    });
 
     // bulk ensure that all expected results of a vanilla mssql server instance are here
     expect(Object.keys(lines)).toEqual([
       "mssql_up",
+      "mssql_product_version",
       "mssql_instance_local_time",
       'mssql_connections{database="master",state="current"}',
       "mssql_deadlocks",
@@ -48,15 +56,11 @@ describe("E2E Test", function () {
       'mssql_log_growths{database="msdb"}',
       'mssql_log_growths{database="mssqlsystemresource"}',
       'mssql_log_growths{database="master"}',
-      'mssql_database_filesize{database="master",logicalname="master",type="0",filename="/var/opt/mssql/data/master.mdf"}',
-      'mssql_database_filesize{database="master",logicalname="mastlog",type="1",filename="/var/opt/mssql/data/mastlog.ldf"}',
-      'mssql_database_filesize{database="tempdb",logicalname="tempdev",type="0",filename="/var/opt/mssql/data/tempdb.mdf"}',
-      'mssql_database_filesize{database="tempdb",logicalname="templog",type="1",filename="/var/opt/mssql/data/templog.ldf"}',
-      'mssql_database_filesize{database="model",logicalname="modeldev",type="0",filename="/var/opt/mssql/data/model.mdf"}',
-      'mssql_database_filesize{database="model",logicalname="modellog",type="1",filename="/var/opt/mssql/data/modellog.ldf"}',
-      'mssql_database_filesize{database="msdb",logicalname="MSDBData",type="0",filename="/var/opt/mssql/data/MSDBData.mdf"}',
-      'mssql_database_filesize{database="msdb",logicalname="MSDBLog",type="1",filename="/var/opt/mssql/data/MSDBLog.ldf"}',
+      "mssql_page_read_total",
+      "mssql_page_write_total",
       "mssql_page_life_expectancy",
+      "mssql_lazy_write_total",
+      "mssql_page_checkpoint_total",
       'mssql_io_stall{database="master",type="read"}',
       'mssql_io_stall{database="master",type="write"}',
       'mssql_io_stall{database="master",type="queued_read"}',
@@ -78,6 +82,11 @@ describe("E2E Test", function () {
       'mssql_io_stall_total{database="model"}',
       'mssql_io_stall_total{database="msdb"}',
       "mssql_batch_requests",
+      'mssql_transactions{database="tempdb"}',
+      'mssql_transactions{database="model"}',
+      'mssql_transactions{database="msdb"}',
+      'mssql_transactions{database="mssqlsystemresource"}',
+      'mssql_transactions{database="master"}',
       "mssql_page_fault_count",
       "mssql_memory_utilization_percentage",
       "mssql_total_physical_memory_kb",
