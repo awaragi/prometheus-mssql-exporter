@@ -6,11 +6,18 @@ const metricsLog = require("debug")("metrics");
 const client = require("prom-client");
 const { productVersionParse } = require("./utils");
 
-// UP metric
-const mssql_up = new client.Gauge({ name: "mssql_up", help: "UP Status" });
+const mssql_up = {
+  metrics: {
+    mssql_up: new client.Gauge({ name: "mssql_up", help: "UP Status" }),
+  },
+  query: "SELECT 1",
+  collect: (rows, metrics) => {
+    let mssql_up = rows[0][0].value;
+    metricsLog("Fetched status of instance", mssql_up);
+    metrics.mssql_up.set(mssql_up);
+  },
+};
 
-// Query based metrics
-// -------------------
 const mssql_product_version = {
   metrics: {
     mssql_product_version: new client.Gauge({ name: "mssql_product_version", help: "Instance version (Major.Minor)" }),
@@ -18,7 +25,7 @@ const mssql_product_version = {
   query: `SELECT CONVERT(VARCHAR(128), SERVERPROPERTY ('productversion')) AS ProductVersion,
   SERVERPROPERTY('ProductVersion') AS ProductVersion
 `,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     let v = productVersionParse(rows[0][0].value);
     const mssql_product_version = v.major + v.minor / 10;
     metricsLog("Fetched version of instance", mssql_product_version);
@@ -31,7 +38,7 @@ const mssql_instance_local_time = {
     mssql_instance_local_time: new client.Gauge({ name: "mssql_instance_local_time", help: "Number of seconds since epoch on local instance" }),
   },
   query: `SELECT DATEDIFF(second, '19700101', GETUTCDATE())`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     const mssql_instance_local_time = rows[0][0].value;
     metricsLog("Fetched current time", mssql_instance_local_time);
     metrics.mssql_instance_local_time.set(mssql_instance_local_time);
@@ -46,7 +53,7 @@ const mssql_connections = {
         , COUNT(sP.spid)
 FROM sys.sysprocesses sP
 GROUP BY DB_NAME(sP.dbid)`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const database = row[0].value;
@@ -69,7 +76,7 @@ const mssql_client_connections = {
 FROM sys.dm_exec_sessions
 WHERE is_user_process=1
 GROUP BY host_name, database_id`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const client = row[0].value;
@@ -91,7 +98,7 @@ const mssql_deadlocks = {
   query: `SELECT cntr_value
 FROM sys.dm_os_performance_counters
 WHERE counter_name = 'Number of Deadlocks/sec' AND instance_name = '_Total'`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     const mssql_deadlocks = rows[0][0].value;
     metricsLog("Fetched number of deadlocks/sec", mssql_deadlocks);
     metrics.mssql_deadlocks_per_second.set(mssql_deadlocks);
@@ -105,7 +112,7 @@ const mssql_user_errors = {
   query: `SELECT cntr_value
 FROM sys.dm_os_performance_counters
 WHERE counter_name = 'Errors/sec' AND instance_name = 'User Errors'`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     const mssql_user_errors = rows[0][0].value;
     metricsLog("Fetched number of user errors/sec", mssql_user_errors);
     metrics.mssql_user_errors.set(mssql_user_errors);
@@ -119,7 +126,7 @@ const mssql_kill_connection_errors = {
   query: `SELECT cntr_value
 FROM sys.dm_os_performance_counters
 WHERE counter_name = 'Errors/sec' AND instance_name = 'Kill Connection Errors'`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     const mssql_kill_connection_errors = rows[0][0].value;
     metricsLog("Fetched number of kill connection errors/sec", mssql_kill_connection_errors);
     metrics.mssql_kill_connection_errors.set(mssql_kill_connection_errors);
@@ -135,7 +142,7 @@ const mssql_database_state = {
     }),
   },
   query: `SELECT name,state FROM master.sys.databases`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const database = row[0].value;
@@ -157,7 +164,7 @@ const mssql_log_growths = {
   query: `SELECT rtrim(instance_name), cntr_value
 FROM sys.dm_os_performance_counters 
 WHERE counter_name = 'Log Growths' and instance_name <> '_Total'`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const database = row[0].value;
@@ -177,7 +184,7 @@ const mssql_database_filesize = {
     }),
   },
   query: `SELECT DB_NAME(database_id) AS database_name, name AS logical_name, type, physical_name, (size * CAST(8 AS BIGINT)) size_kb FROM sys.master_files`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const database = row[0].value;
@@ -213,8 +220,7 @@ const mssql_buffer_manager = {
     mssql_lazy_write_total: new client.Gauge({ name: "mssql_lazy_write_total", help: "Lazy writes/sec" }),
     mssql_page_checkpoint_total: new client.Gauge({ name: "mssql_page_checkpoint_total", help: "Checkpoint pages/sec" }),
   },
-  query: `
-        SELECT * FROM 
+  query: `SELECT * FROM 
         (
             SELECT rtrim(counter_name) as counter_name, cntr_value
             FROM sys.dm_os_performance_counters
@@ -227,7 +233,7 @@ const mssql_buffer_manager = {
         FOR counter_name IN ([Page reads/sec], [Page writes/sec], [Page life expectancy], [Lazy writes/sec], [Checkpoint pages/sec])
         ) piv
     `,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     const row = rows[0];
     const page_read = row[0].value;
     const page_write = row[1].value;
@@ -272,7 +278,7 @@ FROM
 sys.dm_io_virtual_file_stats(null, null) a
 INNER JOIN sys.master_files b ON a.database_id = b.database_id and a.file_id = b.file_id
 GROUP BY a.database_id`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const database = row[0].value;
@@ -301,7 +307,7 @@ const mssql_batch_requests = {
   query: `SELECT TOP 1 cntr_value
 FROM sys.dm_os_performance_counters 
 WHERE counter_name = 'Batch Requests/sec'`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const mssql_batch_requests = row[0].value;
@@ -322,7 +328,7 @@ const mssql_transactions = {
   query: `SELECT rtrim(instance_name), cntr_value
 FROM sys.dm_os_performance_counters
 WHERE counter_name = 'Transactions/sec' AND instance_name <> '_Total'`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const database = row[0].value;
@@ -340,7 +346,7 @@ const mssql_os_process_memory = {
   },
   query: `SELECT page_fault_count, memory_utilization_percentage 
 FROM sys.dm_os_process_memory`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     const page_fault_count = rows[0][0].value;
     const memory_utilization_percentage = rows[0][1].value;
     metricsLog("Fetched page fault count", page_fault_count);
@@ -358,7 +364,7 @@ const mssql_os_sys_memory = {
   },
   query: `SELECT total_physical_memory_kb, available_physical_memory_kb, total_page_file_kb, available_page_file_kb 
 FROM sys.dm_os_sys_memory`,
-  collect: function (rows, metrics) {
+  collect: (rows, metrics) => {
     const mssql_total_physical_memory_kb = rows[0][0].value;
     const mssql_available_physical_memory_kb = rows[0][1].value;
     const mssql_total_page_file_kb = rows[0][2].value;
@@ -381,7 +387,8 @@ FROM sys.dm_os_sys_memory`,
   },
 };
 
-const metrics = [
+const entries = {
+  mssql_up,
   mssql_product_version,
   mssql_instance_local_time,
   mssql_connections,
@@ -398,10 +405,8 @@ const metrics = [
   mssql_transactions,
   mssql_os_process_memory,
   mssql_os_sys_memory,
-];
+};
 
 module.exports = {
-  client: client,
-  mssql_up,
-  metrics: metrics,
+  entries,
 };

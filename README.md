@@ -2,6 +2,7 @@
 
 Prometheus exporter for Microsoft SQL Server (MSSQL). Exposes the following metrics
 
+- mssql_up UP Status
 - mssql_product_version Instance version (Major.Minor)
 - mssql_instance_local_time Number of seconds since epoch on local instance
 - mssql_connections{database,state} Number of active connections

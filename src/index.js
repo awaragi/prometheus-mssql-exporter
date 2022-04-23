@@ -5,10 +5,9 @@ const queriesLog = require("debug")("queries");
 const Connection = require("tedious").Connection;
 const Request = require("tedious").Request;
 const app = require("express")();
+const client = require("prom-client");
 
-const client = require("./metrics").client;
-const mssql_up = require("./metrics").mssql_up;
-const metrics = require("./metrics").metrics;
+const { entries } = require("./metrics");
 
 let config = {
   connect: {
@@ -41,7 +40,7 @@ if (!config.connect.authentication.options.password) {
 }
 
 /**
- * Connects to a database server and if successful starts the metrics collection interval.
+ * Connects to a database server.
  *
  * @returns Promise<Connection>
  */
@@ -70,19 +69,29 @@ async function connect() {
  *
  * @param connection database connection
  * @param collector single metric: {query: string, collect: function(rows, metric)}
+ * @param name name of collector variable
  *
  * @returns Promise of collect operation (no value returned)
  */
-async function measure(connection, collector) {
+async function measure(connection, collector, name) {
   return new Promise((resolve) => {
-    queriesLog(`Executing query: ${collector.query}`);
+    queriesLog(`Executing metric ${name} query: ${collector.query}`);
     let request = new Request(collector.query, (error, rowCount, rows) => {
       if (!error) {
-        queriesLog(`Retrieved rows ${JSON.stringify(rows, null, 2)}`);
-        collector.collect(rows, collector.metrics);
+        queriesLog(`Retrieved metric ${name} rows (${rows.length}): ${JSON.stringify(rows, null, 2)}`);
+
+        if (rows.length > 0) {
+          try {
+            collector.collect(rows, collector.metrics);
+          } catch (error) {
+            console.error(`Error processing metric ${name} data`, collector.query, JSON.stringify(rows), error);
+          }
+        } else {
+          console.error(`Query for metric ${name} returned 0 rows to process`, collector.query);
+        }
         resolve();
       } else {
-        console.error("Error executing SQL query", collector.query, error);
+        console.error(`Error executing metric ${name} SQL query`, collector.query, error);
         resolve();
       }
     });
@@ -98,9 +107,8 @@ async function measure(connection, collector) {
  * @returns Promise of execution (no value returned)
  */
 async function collect(connection) {
-  mssql_up.set(1);
-  for (let i = 0; i < metrics.length; i++) {
-    await measure(connection, metrics[i]);
+  for (const [metricName, metric] of Object.entries(entries)) {
+    await measure(connection, metric, metricName);
   }
 }
 
@@ -112,15 +120,15 @@ app.get("/metrics", async (req, res) => {
   res.contentType(client.register.contentType);
 
   try {
-    appLog("Received metrics request");
+    appLog("Received /metrics request");
     let connection = await connect();
-    await collect(connection, metrics);
+    await collect(connection);
     connection.close();
     res.send(client.register.metrics());
-    appLog("Successfully processed metrics request");
+    appLog("Successfully processed /metrics request");
   } catch (error) {
     // error connecting
-    appLog("Error handling metrics request");
+    appLog("Error handling /metrics request");
     mssql_up.set(0);
     res.header("X-Error", error.message || error);
     res.send(client.register.getSingleMetricAsString(mssql_up.name));
