@@ -129,9 +129,10 @@ app.get("/metrics", async (req, res) => {
   } catch (error) {
     // error connecting
     appLog("Error handling /metrics request");
-    mssql_up.set(0);
+    const mssqlUp = entries.mssql_up.metrics.mssql_up;
+    mssqlUp.set(0);
     res.header("X-Error", error.message || error);
-    res.send(client.register.getSingleMetricAsString(mssql_up.name));
+    res.send(client.register.getSingleMetricAsString(mssqlUp.name));
   }
 });
 
