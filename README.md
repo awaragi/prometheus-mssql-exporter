@@ -43,6 +43,8 @@ The image supports the following environments and exposes port 4000
 - **PORT** server port (optional defaults to 1433)
 - **USERNAME** access user (required)
 - **PASSWORD** access password (required)
+- **ENCRYPT** force [encrypt](https://docs.microsoft.com/en-us/dotnet/api/system.data.sqlclient.sqlconnectionstringbuilder.encrypt?view=dotnet-plat-ext-6.0) setting (optional defaults to true)
+- **TRUST_SERVER_CERTIFICATE** sets [trustServerCertificate](https://docs.microsoft.com/en-us/dotnet/api/system.data.sqlclient.sqlconnectionstringbuilder.trustservercertificate?view=dotnet-plat-ext-6.0) setting (optional defaults to true)
 - **DEBUG** comma delimited list of enabled logs (optional currently supports app and metrics)
 
 It is **_required_** that the specified user has the following permissions
@@ -99,9 +101,11 @@ npm run metrics
 ## Environment variables
 
 - SERVER: sqlserver
-- PORT: sql server port (defaults to 1433)
+- PORT: sql server port (optional defaults to 1433)
 - USERNAME: sql server user (should have admin or user with required permissions)
 - PASSWORD: sql user password
+- ENCRYPT: force [encrypt](https://docs.microsoft.com/en-us/dotnet/api/system.data.sqlclient.sqlconnectionstringbuilder.encrypt?view=dotnet-plat-ext-6.0) setting (optional defaults to true)
+- TRUST_SERVER_CERTIFICATE: sets [trustServerCertificate](https://docs.microsoft.com/en-us/dotnet/api/system.data.sqlclient.sqlconnectionstringbuilder.trustservercertificate?view=dotnet-plat-ext-6.0) setting (optional defaults to true)
 - EXPOSE: webserver port (defaults to 4000)
 - DEBUG: verbose logging
   - app for application logging

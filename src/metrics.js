@@ -27,7 +27,7 @@ const mssql_product_version = {
 `,
   collect: (rows, metrics) => {
     let v = productVersionParse(rows[0][0].value);
-    const mssql_product_version = v.major + v.minor / 10;
+    const mssql_product_version = v.major + "." + v.minor;
     metricsLog("Fetched version of instance", mssql_product_version);
     metrics.mssql_product_version.set(mssql_product_version);
   },
@@ -72,10 +72,11 @@ const mssql_client_connections = {
       labelNames: ["client", "database"],
     }),
   },
-  query: `SELECT host_name, DB_NAME(database_id), COUNT(*)
-FROM sys.dm_exec_sessions
+  query: `SELECT host_name, DB_NAME(dbid) dbname, COUNT(*) session_count
+FROM sys.dm_exec_sessions a
+LEFT JOIN sysprocesses b on a.session_id=b.spid
 WHERE is_user_process=1
-GROUP BY host_name, database_id`,
+GROUP BY host_name, dbid`,
   collect: (rows, metrics) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];

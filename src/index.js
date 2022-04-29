@@ -21,8 +21,8 @@ let config = {
     },
     options: {
       port: parseInt(process.env["PORT"]) || 1433,
-      encrypt: true,
-      trustServerCertificate: true,
+      encrypt: process.env["ENCRYPT"] !== undefined ? process.env["ENCRYPT"] === "true" : true,
+      trustServerCertificate: process.env["TRUST_SERVER_CERTIFICATE"] !== undefined ? process.env["TRUST_SERVER_CERTIFICATE"] === "true" : true,
       rowCollectionOnRequestCompletion: true,
     },
   },
@@ -46,7 +46,15 @@ if (!config.connect.authentication.options.password) {
  */
 async function connect() {
   return new Promise((resolve, reject) => {
-    dbLog("Connecting to database", config.connect.server, "using user", config.connect.authentication.options.userName);
+    dbLog(
+      "Connecting to",
+      config.connect.authentication.options.userName + "@" + config.connect.server + ":" + config.connect.options.port,
+      "encrypt:",
+      config.connect.options.encrypt,
+      "trustServerCertificate:",
+      config.connect.options.trustServerCertificate
+    );
+
     let connection = new Connection(config.connect);
     connection.on("connect", (error) => {
       if (error) {
@@ -56,6 +64,10 @@ async function connect() {
         dbLog("Connected to database");
         resolve(connection);
       }
+    });
+    connection.on("error", (error) => {
+      console.error("Error while connected to database:", error.message || error);
+      reject(error);
     });
     connection.on("end", () => {
       dbLog("Connection to database ended");
