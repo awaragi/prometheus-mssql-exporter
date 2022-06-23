@@ -144,7 +144,7 @@ app.get("/metrics", async (req, res) => {
     const mssqlUp = entries.mssql_up.metrics.mssql_up;
     mssqlUp.set(0);
     res.header("X-Error", error.message || error);
-    res.send(client.register.getSingleMetricAsString(mssqlUp.name));
+    res.status(404).end(client.register.getSingleMetricAsString(mssqlUp.name));
   }
 });
 
