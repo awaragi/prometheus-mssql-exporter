@@ -68,7 +68,7 @@ Each container should use its own docker port forward (e.g. -p 4001:4000 and -p 
 
 ### What Grafana dashboard can I use
 
-Here are some suggestions on available Grafana dashboards. If you are an author or such dashboard and want to have it referenced here, simply create a Pull Request.
+Here are some suggestions on available Grafana dashboards. If you are an author of such dashboard and want to have it referenced here, simply create a Pull Request.
 
 - https://grafana.com/grafana/dashboards/13919
 
