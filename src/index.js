@@ -21,6 +21,7 @@ let config = {
     },
     options: {
       port: parseInt(process.env["PORT"]) || 1433,
+      database: process.env["DATABASE"] || "master",
       encrypt: process.env["ENCRYPT"] !== undefined ? process.env["ENCRYPT"] === "true" : true,
       trustServerCertificate: process.env["TRUST_SERVER_CERTIFICATE"] !== undefined ? process.env["TRUST_SERVER_CERTIFICATE"] === "true" : true,
       rowCollectionOnRequestCompletion: true,
