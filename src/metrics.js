@@ -163,7 +163,7 @@ const mssql_log_growths = {
     }),
   },
   query: `SELECT rtrim(instance_name), cntr_value
-FROM sys.dm_os_performance_counters 
+FROM sys.dm_os_performance_counters
 WHERE counter_name = 'Log Growths' and instance_name <> '_Total'`,
   collect: (rows, metrics) => {
     for (let i = 0; i < rows.length; i++) {
@@ -221,12 +221,12 @@ const mssql_buffer_manager = {
     mssql_lazy_write_total: new client.Gauge({ name: "mssql_lazy_write_total", help: "Lazy writes/sec" }),
     mssql_page_checkpoint_total: new client.Gauge({ name: "mssql_page_checkpoint_total", help: "Checkpoint pages/sec" }),
   },
-  query: `SELECT * FROM 
+  query: `SELECT * FROM
         (
             SELECT rtrim(counter_name) as counter_name, cntr_value
             FROM sys.dm_os_performance_counters
             WHERE counter_name in ('Page reads/sec', 'Page writes/sec', 'Page life expectancy', 'Lazy writes/sec', 'Checkpoint pages/sec')
-            AND object_name = 'SQLServer:Buffer Manager'
+            AND object_name like '%:Buffer Manager'
         ) d
         PIVOT
         (
@@ -306,7 +306,7 @@ const mssql_batch_requests = {
     }),
   },
   query: `SELECT TOP 1 cntr_value
-FROM sys.dm_os_performance_counters 
+FROM sys.dm_os_performance_counters
 WHERE counter_name = 'Batch Requests/sec'`,
   collect: (rows, metrics) => {
     for (let i = 0; i < rows.length; i++) {
@@ -345,7 +345,7 @@ const mssql_os_process_memory = {
     mssql_page_fault_count: new client.Gauge({ name: "mssql_page_fault_count", help: "Number of page faults since last restart" }),
     mssql_memory_utilization_percentage: new client.Gauge({ name: "mssql_memory_utilization_percentage", help: "Percentage of memory utilization" }),
   },
-  query: `SELECT page_fault_count, memory_utilization_percentage 
+  query: `SELECT page_fault_count, memory_utilization_percentage
 FROM sys.dm_os_process_memory`,
   collect: (rows, metrics) => {
     const page_fault_count = rows[0][0].value;
@@ -363,7 +363,7 @@ const mssql_os_sys_memory = {
     mssql_total_page_file_kb: new client.Gauge({ name: "mssql_total_page_file_kb", help: "Total page file in KB" }),
     mssql_available_page_file_kb: new client.Gauge({ name: "mssql_available_page_file_kb", help: "Available page file in KB" }),
   },
-  query: `SELECT total_physical_memory_kb, available_physical_memory_kb, total_page_file_kb, available_page_file_kb 
+  query: `SELECT total_physical_memory_kb, available_physical_memory_kb, total_page_file_kb, available_page_file_kb
 FROM sys.dm_os_sys_memory`,
   collect: (rows, metrics) => {
     const mssql_total_physical_memory_kb = rows[0][0].value;
