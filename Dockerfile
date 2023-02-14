@@ -1,4 +1,4 @@
-FROM node:16.14.2-alpine
+FROM node:18.12.1-alpine3.16
 LABEL MAINTAINER="Pierre Awaragi (pierre@awaragi.com), cobolbaby"
 LABEL org.opencontainers.image.authors="Pierre Awaragi (pierre@awaragi.com), cobolbaby"
 
