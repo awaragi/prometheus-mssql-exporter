@@ -390,28 +390,21 @@ FROM sys.dm_os_sys_memory`,
 
 const mssql_avagroup = {
   metrics: {
-    mssql_avagroup: new client.Gauge({ name: "mssql_avagroup", help: "AVA GROUP status (-1=noavagroup,1=primary,2=secondary,3=none)", labelNames: ["ava_name", "primary"]}),
+    mssql_avagroup: new client.Gauge({ name: "mssql_avagroup", help: "AVA GROUP status (-1=noavagroup,1=primary,2=secondary,3=none)", labelNames: ["ava_name"]}),
   },
   query: "select * from (select '0' as placeholder) x left join (SELECT isnull(AG.name, '') AS [Name], ISNULL(agstates.primary_replica, '') AS [PrimaryReplicaServerName], ISNULL(arstates.role, 3) AS [LocalReplicaRole] FROM master.sys.availability_groups AS AG LEFT OUTER JOIN master.sys.dm_hadr_availability_group_states as agstates ON AG.group_id = agstates.group_id inner JOIN master.sys.availability_replicas AS AR ON AG.group_id = AR.group_id inner JOIN master.sys.dm_hadr_availability_replica_states AS arstates ON AR.replica_id = arstates.replica_id AND arstates.is_local = 1)t on 1=1",
   collect: (rows, metrics) => {
-    const regex = /(?<host>.*)\\/;
     if (rows[0][1].value == null) {
       metricsLog("No Avagroup found. skip");
       const ava_name = "noavagroup";
-      const primary = "noavagroup";
-      metrics.mssql_avagroup.set({ ava_name, primary }, -1);
+      metrics.mssql_avagroup.set({ava_name}, -1);
     } else {
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         const ava_name = row[1].value;
-        const host = row[2].value.match(regex);
         const avagroup_replica_role = row[3].value;
-        let primary = row[2].value;
-        if (host) {
-          primary = row[2].value.match(regex).groups.host;
-        }
         metricsLog("Fetched status of instance", ava_name);
-        metrics.mssql_avagroup.set({ava_name, primary}, avagroup_replica_role);
+        metrics.mssql_avagroup.set({ava_name}, avagroup_replica_role);
       }
     }
   },
