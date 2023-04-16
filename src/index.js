@@ -39,6 +39,14 @@ if (!config.connect.authentication.options.password) {
   throw new Error("Missing PASSWORD information");
 }
 
+let regexDomainUser = /^([^\\]+)\\([^\\]+)$/;
+let match = regexDomainUser.exec(config.connect.authentication.options.userName);
+if (match) {
+  config.connect.authentication.type = "ntlm";
+  config.connect.authentication.options.domain = match[1];
+  config.connect.authentication.options.userName = match[2];
+}
+
 /**
  * Connects to a database server.
  *
