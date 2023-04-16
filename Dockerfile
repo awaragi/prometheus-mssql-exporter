@@ -18,4 +18,4 @@ RUN npm ci --production
 EXPOSE 4000
 
 # Serve the app
-CMD ["node", "index.js"]
+CMD ["node", "--openssl-legacy-provider", "index.js"]
