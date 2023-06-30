@@ -238,6 +238,30 @@ from sys.dm_os_sys_memory`,
     }
 };
 
+const mssql_cpu_usage = {
+    metrics: {
+        mssql_cpu_idle_percentage: new client.Gauge({name: 'mssql_cpu_idle_percentage', help: 'Percentage of CPU idle'}),
+        mssql_cpu_usage_percentage: new client.Gauge({name: 'mssql_cpu_usage_percentage', help: 'Percentage of CPU usage'}),
+    },
+    query: `SELECT
+    cpu_idle = record.value('(./Record/SchedulerMonitorEvent/SystemHealth/SystemIdle)[1]', 'int'),
+    cpu_sql = record.value('(./Record/SchedulerMonitorEvent/SystemHealth/ProcessUtilization)[1]', 'int')
+FROM (
+    SELECT TOP 1 CONVERT(XML, record) AS record
+    FROM sys.dm_os_ring_buffers
+    WHERE ring_buffer_type = N'RING_BUFFER_SCHEDULER_MONITOR'
+    AND record LIKE '% %'
+    ORDER BY TIMESTAMP DESC
+) as cpu_usage`,
+    collect: function (rows, metrics) {
+        const cpu_idle = rows[0][0].value;
+        const cpu_sql = rows[0][1].value;
+        debug("Fetch CPU usage information");
+        metrics.mssql_cpu_idle_percentage.set(parseInt(cpu_idle));
+        metrics.mssql_cpu_usage_percentage.set(parseInt(cpu_sql));
+    }
+}
+
 const metrics = [
     mssql_instance_local_time,
     mssql_connections,
@@ -251,7 +275,8 @@ const metrics = [
     mssql_io_stall,
     mssql_batch_requests,
     mssql_os_process_memory,
-    mssql_os_sys_memory
+    mssql_os_sys_memory,
+    mssql_cpu_usage,
 ];
 
 module.exports = {
